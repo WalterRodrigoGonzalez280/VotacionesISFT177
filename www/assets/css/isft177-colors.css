@@ -1,0 +1,108 @@
+/* 
+ * Colores oficiales del ISFT 177
+ * Basado en la identidad visual del Instituto Superior de Formación Técnica N° 177
+ * Sitio web: https://isft177.edu.ar/
+ */
+
+:root {
+    /* Colores principales ISFT 177 */
+    --isft-primary: #1e40af;      /* Azul principal */
+    --isft-secondary: #3b82f6;    /* Azul secundario */
+    --isft-light: #60a5fa;        /* Azul claro */
+    --isft-dark: #1e3a8a;        /* Azul oscuro */
+    
+    /* Gradientes ISFT 177 */
+    --isft-gradient-primary: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    --isft-gradient-background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+    
+    /* Colores de texto */
+    --isft-text-primary: #1e40af;
+    --isft-text-secondary: #3b82f6;
+    --isft-text-light: #60a5fa;
+    
+    /* Colores de fondo */
+    --isft-bg-primary: #1e40af;
+    --isft-bg-secondary: #3b82f6;
+    --isft-bg-light: #f8fafc;
+    
+    /* Sombras */
+    --isft-shadow-primary: 0 5px 15px rgba(59, 130, 246, 0.4);
+    --isft-shadow-secondary: 0 10px 30px rgba(30, 64, 175, 0.1);
+}
+
+/* Clases utilitarias para colores ISFT 177 */
+.bg-isft-primary { background-color: var(--isft-primary) !important; }
+.bg-isft-secondary { background-color: var(--isft-secondary) !important; }
+.bg-isft-light { background-color: var(--isft-light) !important; }
+.bg-isft-dark { background-color: var(--isft-dark) !important; }
+
+.text-isft-primary { color: var(--isft-primary) !important; }
+.text-isft-secondary { color: var(--isft-secondary) !important; }
+.text-isft-light { color: var(--isft-light) !important; }
+
+.border-isft-primary { border-color: var(--isft-primary) !important; }
+.border-isft-secondary { border-color: var(--isft-secondary) !important; }
+
+/* Botones con colores ISFT 177 */
+.btn-isft-primary {
+    background: var(--isft-gradient-primary);
+    border: none;
+    color: white;
+    border-radius: 25px;
+    padding: 12px 30px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-isft-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--isft-shadow-primary);
+    color: white;
+}
+
+.btn-isft-outline {
+    background: transparent;
+    border: 2px solid var(--isft-secondary);
+    color: var(--isft-secondary);
+    border-radius: 25px;
+    padding: 10px 25px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-isft-outline:hover {
+    background: var(--isft-secondary);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* Cards con colores ISFT 177 */
+.card-isft {
+    border: none;
+    border-radius: 15px;
+    box-shadow: var(--isft-shadow-secondary);
+    transition: transform 0.3s ease;
+}
+
+.card-isft:hover {
+    transform: translateY(-5px);
+}
+
+.card-header-isft {
+    background: var(--isft-gradient-primary);
+    color: white;
+    border-radius: 15px 15px 0 0 !important;
+}
+
+/* Formularios con colores ISFT 177 */
+.form-control-isft {
+    border-radius: 25px;
+    padding: 12px 20px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.form-control-isft:focus {
+    border-color: var(--isft-secondary);
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+}

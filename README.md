@@ -1,15 +1,15 @@
-# APHD 2025 - Entorno de Desarrollo con Docker
+# Sistema de Votaciones ISFT177 - Entorno de Desarrollo con Docker
 
-Este proyecto utiliza **Docker** para configurar un entorno completo de desarrollo PHP con Apache, MySQL y phpMyAdmin.
+Este proyecto utiliza **Docker** para configurar un entorno completo de desarrollo PHP con Apache, MySQL y phpMyAdmin para el sistema de votaciones.
 
 ---
 ## Paso de instalación y ejecución del docker PHP-APACHE 
 
     Clonar el repositorio si contas con la key SSH:  
     
-        git clone git@github.com:GonzaloOSierra/APHD-2025.git
-        cd APHD-2025
-        git checkout develop
+        git clone git@github.com/GonzaloOSierra/VotacionesISFT177.git
+        cd VotacionesISFT177
+        git checkout main
 
 
 ## Requisitos Previos
@@ -23,23 +23,41 @@ Este proyecto utiliza **Docker** para configurar un entorno completo de desarrol
 ## Estructura del Proyecto
 
 ```
-    APHD-2025/
+    VotacionesISFT177/
     ├── Dockerfiles/
     │ └── php-apache/
     │        └── Dockerfile
-    ├── dump/ 
-    ├── www/ 
+    ├── dump/                   # Volúmenes de base de datos
+    ├── www/                    # Código fuente de la aplicación
     │   ├── assets/             # Archivos estáticos (CSS, JS, imágenes)
     │   ├── controllers/        # Controladores PHP
     │   ├── models/             # Modelos (lógica de datos)
     │   ├── views/              # Vistas (HTML, templates)
-    │   └── index.php           # Punto de entrada princip
-    ├── .env 
-    ├── docker-compose.yml
+    │   └── index.php           # Punto de entrada principal
+    ├── .env                    # Variables de entorno
+    ├── docker-compose.yml     # Configuración de Docker Compose
     ├── .gitignore
     └── README.md
 
 ``` 
+
+---
+
+## Sistema de Votaciones
+
+Este entorno Docker está configurado específicamente para el desarrollo del **Sistema de Votaciones ISFT177**, que incluye:
+
+- **Aplicación web PHP** con Apache para el sistema de votaciones
+- **Base de datos MySQL 5.7** para almacenar datos de votantes, candidatos y resultados
+- **phpMyAdmin** para gestión y administración de la base de datos
+- **Entorno de desarrollo** optimizado para PHP 7.4 con extensiones MySQL
+
+### Características del Sistema:
+- Gestión de usuarios y autenticación
+- Registro de candidatos y propuestas
+- Proceso de votación seguro
+- Generación de reportes y estadísticas
+- Panel de administración
 
 ---
 
@@ -79,7 +97,7 @@ PMA_PORT=5005
 
         Levantará:
 
-        -mysql: base de datos MySQL 5.7
+        -db: base de datos MySQL 5.7
 
         -App_votacion: contenedor PHP + Apache
 
@@ -101,15 +119,17 @@ PMA_PORT=5005
 # Accesos
 
 ### Desde el navegador local:  
-    http://localhost:5000/ ----> para php-apache
+    http://localhost:5000/ ----> para la aplicación de votaciones (PHP + Apache)
     
-    http://localhost:5005/ ----> para la imagen de phpmyadmin  
+    http://localhost:5005/ ----> para phpMyAdmin (gestión de base de datos)
 
-    Credenciales de acceso a MySQL / phpMyAdmin:
+    **Credenciales de acceso a MySQL / phpMyAdmin:**
 
         Usuario: votacion_user
 
         Contraseña: develop2025
+
+    **Base de datos:** votacion_db
 
 ### Acceso desde otra computadora en la red
 
@@ -131,13 +151,62 @@ Si querés usar la aplicación desde otra máquina conectada a la misma red loca
 
     Desde cualquier navegador en otra máquina de la red:
 
-    Aplicación PHP + Apache:
+    **Sistema de Votaciones (PHP + Apache):**
         http://192.168.1.40:5000
 
-    phpMyAdmin:
+    **phpMyAdmin (gestión de base de datos):**
         http://192.168.1.40:5005
 
     3 Requisitos
     -Ambas computadoras deben estar conectadas a la misma red local.
     -Asegurate de que Docker esté corriendo en la computadora host (docker ps).
     -Verificá que el firewall del host no bloquee los puertos 5000 y 5005.
+
+---
+
+## Solución de Problemas
+
+### Si Docker no se levanta correctamente:
+
+1. **Limpiar contenedores y volúmenes:**
+   ```bash
+   docker-compose down -v
+   docker system prune -f
+   ```
+
+2. **Verificar que el archivo .env existe:**
+   ```bash
+   ls -la .env
+   ```
+
+3. **Verificar que los directorios existen:**
+   ```bash
+   mkdir -p www dump
+   ```
+
+4. **Reconstruir las imágenes:**
+   ```bash
+   docker-compose up -d --build
+   ```
+
+### Verificar que todo funciona:
+
+- **Aplicación web:** http://localhost:5000 (debe mostrar "Sistema de Votaciones")
+- **phpMyAdmin:** http://localhost:5005 (debe mostrar la interfaz de login)
+- **Contenedores activos:** `docker ps` (debe mostrar 3 contenedores corriendo)
+
+### Comandos útiles:
+
+```bash
+# Ver logs de los contenedores
+docker-compose logs
+
+# Ver logs de un contenedor específico
+docker-compose logs App_votacion
+
+# Reiniciar un contenedor específico
+docker-compose restart App_votacion
+
+# Acceder al contenedor PHP
+docker exec -it App_votacion bash
+```

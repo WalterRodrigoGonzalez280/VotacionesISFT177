@@ -1,0 +1,151 @@
+/* Estilos generales del sistema de votaciones - Colores ISFT 177 */
+body {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Estilos para contenedores de login/registro */
+.login-container, .register-container {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.login-header, .register-header {
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+}
+
+.login-form, .register-form {
+    padding: 2rem;
+}
+
+/* Botones */
+.btn-login, .btn-register {
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    border: none;
+    border-radius: 25px;
+    padding: 12px 30px;
+    font-weight: 600;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.btn-login:hover, .btn-register:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+}
+
+/* Formularios */
+.form-control {
+    border-radius: 25px;
+    padding: 12px 20px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+}
+
+/* Input groups para contraseñas */
+.input-group .btn {
+    border-radius: 0 25px 25px 0;
+    border-left: none;
+}
+
+.input-group .form-control {
+    border-radius: 25px 0 0 25px;
+}
+
+/* Navbar */
+.navbar {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Cards */
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px 15px 0 0 !important;
+}
+
+/* Botones primarios */
+.btn-primary {
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    border: none;
+    border-radius: 25px;
+}
+
+.btn-outline-primary {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    border-radius: 25px;
+}
+
+.btn-outline-primary:hover {
+    background: #3b82f6;
+    border-color: #3b82f6;
+}
+
+/* Cards de estadísticas */
+.stats-card {
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    color: white;
+}
+
+/* Alertas */
+.alert {
+    border-radius: 10px;
+    border: none;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.alert-success {
+    background-color: #d1edff;
+    color: #0c5460;
+}
+
+/* Enlaces */
+a {
+    color: #3b82f6;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #1e40af;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .login-container, .register-container {
+        margin: 1rem;
+    }
+    
+    .login-form, .register-form {
+        padding: 1.5rem;
+    }
+}
