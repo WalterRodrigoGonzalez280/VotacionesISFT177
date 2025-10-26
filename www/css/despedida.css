@@ -1,0 +1,168 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #F2C94C;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    max-width: 600px;
+    width: 100%;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.logo-container {
+    text-align: center;
+    padding: 30px 30px 20px 30px;
+    background: linear-gradient(to bottom, #3A3F44 0%, #3A3F44 50%, white 50%);
+}
+
+.logo-container .logo {
+    max-width: 180px;
+    height: auto;
+    border-radius: 10px;
+    background: white;
+    padding: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.goodbye-section {
+    padding: 50px 40px;
+    text-align: center;
+}
+
+.icon-container {
+    margin-bottom: 30px;
+    animation: scaleIn 0.6s ease;
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.7);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+h1 {
+    color: #3A3F44;
+    font-size: 2.8em;
+    margin-bottom: 20px;
+    animation: fadeInUp 0.7s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message {
+    font-size: 1.3em;
+    color: #666;
+    margin-bottom: 20px;
+    line-height: 1.6;
+    font-weight: 500;
+    animation: fadeInUp 0.8s ease;
+}
+
+.info {
+    font-size: 1.1em;
+    color: #888;
+    margin-bottom: 50px;
+    line-height: 1.8;
+    animation: fadeInUp 0.9s ease;
+}
+
+.actions {
+    animation: fadeInUp 1s ease;
+}
+
+.login-btn {
+    background: #3A3F44;
+    color: white;
+    border: none;
+    padding: 18px 50px;
+    border-radius: 35px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(58, 63, 68, 0.3);
+}
+
+.login-btn:hover {
+    background: #2C3136;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(58, 63, 68, 0.4);
+}
+
+.login-btn:active {
+    transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2.2em;
+    }
+    
+    .message {
+        font-size: 1.1em;
+    }
+    
+    .info {
+        font-size: 1em;
+    }
+    
+    .logo-container {
+        padding: 20px 20px 15px 20px;
+    }
+    
+    .goodbye-section {
+        padding: 40px 25px;
+    }
+    
+    .login-btn {
+        padding: 15px 40px;
+        font-size: 1em;
+    }
+}
+
+/* Estilos para el footer */
+.main-footer {
+    background: #3A3F44;
+    color: white;
+    text-align: center;
+    padding: 20px;
+    margin-top: auto;
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+    width: 100%;
+}
+
+.main-footer p {
+    margin: 0;
+    font-size: 0.95em;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}

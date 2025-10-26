@@ -1,0 +1,11 @@
+wwww/*
+wwww/*/
+dump/*
+dump/*/
+Backup/*
+/shells/*
+*.env
+.env
+.env.prod
+backend/www/assets/img/perfiles/*
+!backend/www/assets/img/perfiles/.gitkeep
