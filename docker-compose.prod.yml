@@ -1,0 +1,16 @@
+services:
+    php-apache:
+      build: Dockerfiles/php-apache/
+      container_name: App_votacion
+      env_file:
+        - .env
+      volumes: 
+        - ./www/:/var/www/html
+      ports:
+        - ${PHP_PORT}:80
+      networks:
+      - app-network
+networks:
+  app-network:
+    name: aphd-2025_app-network
+    driver: bridge
