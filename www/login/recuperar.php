@@ -4,96 +4,152 @@ require_once __DIR__ . '/../conexion/conexion.php';
 require_once __DIR__ . '/../registro/generar_token.php';
 
 $mensaje = '';
-$mensaje_tipo = '';
+$tipo = 'error';
+$destino = '';
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
-    
-    if (empty($email)) {
-        $mensaje = "Ingresa tu email";
-        $mensaje_tipo = 'error';
+
+    if ($email === '') {
+        $mensaje = 'Ingresá el correo con el que te registraste.';
     } else {
         try {
-            $stmt = $pdo->prepare("SELECT id, email, activo FROM usuarios WHERE email = ?");
+            $stmt = $pdo->prepare('SELECT id, activo FROM usuarios WHERE email = ?');
             $stmt->execute([$email]);
             $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($usuario) {
-                // Generar nuevo token y enviarlo por email
-                $resultado = generarNuevoToken($pdo, $email);
-                
-                if ($resultado) {
-                    $mensaje = "Se ha enviado un nuevo código de activación a tu correo electrónico. Revisa tu bandeja de entrada.";
-                    $mensaje_tipo = 'success';
-                    
-                    // Guardar email en sesión para la activación
-                    $_SESSION['user_email'] = $email;
-                    
-                    // Obtener el token para guardarlo en sesión
-                    $stmt = $pdo->prepare("SELECT token FROM usuarios WHERE email = ?");
-                    $stmt->execute([$email]);
-                    $usuario_token = $stmt->fetch(PDO::FETCH_ASSOC);
-                    
-                    if ($usuario_token) {
-                        $_SESSION['user_token'] = $usuario_token['token'];
-                    }
-                    
-                    // Redirigir a la página de activación después de 2 segundos
-                    echo "<script>setTimeout(function() { window.location.href = '../registro/activar.php'; }, 2000);</script>";
-                } else {
-                    $mensaje = "Error al enviar el correo. Intenta nuevamente.";
-                    $mensaje_tipo = 'error';
-                }
+
+            if (!$usuario) {
+                $mensaje = 'No existe una cuenta asociada a ese correo.';
             } else {
-                $mensaje = "No existe una cuenta asociada a este email.";
-                $mensaje_tipo = 'error';
+                // `=== true` es obligatorio: el string de error es truthy.
+                $resultado = generarNuevoToken($pdo, $email);
+
+                if ($resultado === true) {
+                    $_SESSION['user_email'] = $email;
+
+                    $stmt = $pdo->prepare('SELECT token FROM usuarios WHERE email = ?');
+                    $stmt->execute([$email]);
+                    $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if ($fila) {
+                        $_SESSION['user_token'] = $fila['token'];
+                    }
+
+                    $tipo = 'ok';
+                    $mensaje = 'Te enviamos un código de 4 dígitos. Te llevamos a la pantalla de activación.';
+                    $destino = 'activar.php';
+                } else {
+                    $mensaje = is_string($resultado) ? $resultado : 'No pudimos enviar el correo.';
+                }
             }
         } catch (PDOException $e) {
-            $mensaje = "Error en el sistema: " . $e->getMessage();
-            $mensaje_tipo = 'error';
+            error_log('Recuperar: ' . $e->getMessage());
+            $mensaje = 'No pudimos procesar la solicitud en este momento.';
         }
     }
 }
-?>
 
+$titulo = 'Recuperar contraseña';
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recuperar Contraseña - ISFT 177</title>
-    <link rel="stylesheet" href="../css/login.css">
-    <link rel="icon" href="../assets/img/Logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><?= htmlspecialchars($titulo) ?> | ISFT 177</title>
+        <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
+         preconnect evita el round-trip extra al pedir la hoja de estilos. -->
+    <?php include __DIR__ . '/../includes/theme-inline.php'; ?>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Lato:wght@300;400;700&display=swap">
+    <link rel="stylesheet" href="../css/tokens.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/icons.css">
+    <link rel="stylesheet" href="../css/theme-toggle.css">
+    <link rel="stylesheet" href="../css/nav.css">
+    <link rel="stylesheet" href="../css/auth.css">
 </head>
-
 <body>
-    <div class="login-container">
-        <div class="logo-container">
-            <img src="../Logo/logoisft177.png" alt="Logo ISFT 177" class="logo">
-        </div>
-        
-        <h2>🔑 Recuperar Contraseña</h2>
-        
-        <p style="text-align: center; color: #666; margin-bottom: 20px;">
-            Ingresa tu email y te enviaremos un nuevo código de activación.
+<div class="auth">
+
+    <aside class="auth__brand">
+        <picture>
+            <source srcset="../Logo/logoisft177.webp" type="image/webp">
+            <img src="../Logo/logoisft177-480.png" alt="Logo del ISFT 177" class="auth__logo">
+        </picture>
+        <p class="auth__institution">ISFT N° 177</p>
+        <p class="auth__tagline">
+            Exposición de proyectos de Prácticas Profesionalizantes.
+            Cada persona emite un voto por año.
         </p>
+    </aside>
 
-        <?php if (!empty($mensaje)): ?>
-            <div style="padding: 12px; border-radius: 8px; margin-bottom: 20px; background: <?= $mensaje_tipo === 'success' ? '#d4edda' : '#f8d7da' ?>; color: <?= $mensaje_tipo === 'success' ? '#155724' : '#721c24' ?>; border: 1px solid <?= $mensaje_tipo === 'success' ? '#c3e6cb' : '#f5c6cb' ?>;">
-                <?= htmlspecialchars($mensaje) ?>
-            </div>
-        <?php endif; ?>
-
-        <form action="" method="post">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" required placeholder="tu@email.com">
-
-            <button type="submit">Enviar Código</button>
-            
-            <p style="text-align: center; margin-top: 20px;">
-                <a href="login.php">← Volver al Login</a>
+    <main class="auth__main" id="contenido">
+        <div class="auth__card">
+            <h1 class="auth__title"><?= htmlspecialchars($titulo) ?></h1>
+            <p class="auth__lead">
+                Ingresá tu correo y te enviamos un código para que elijas una contraseña nueva.
             </p>
-        </form>
-    </div>
+
+            <?php if ($mensaje !== ''): ?>
+                <div class="alert alert--<?= $tipo === 'ok' ? 'ok' : 'error' ?>" role="status">
+                    <svg class="icon icon--sm" aria-hidden="true"><use href="#i-<?= $tipo === 'ok' ? 'check' : 'alerta' ?>"></use></svg>
+                    <span><?= htmlspecialchars($mensaje) ?></span>
+                </div>
+            <?php endif; ?>
+
+            <form class="auth__form" method="post" action="" novalidate data-validate="recuperar">
+                <div class="field">
+                    <label class="field__label" for="email">Correo electrónico</label>
+                    <input
+                        class="field__input"
+                        type="email"
+                        id="email"
+                        name="email"
+                        autocomplete="email"
+                        inputmode="email"
+                        placeholder="nombre@correo.com"
+                        required>
+                </div>
+
+                <button class="btn btn--primary btn--block" type="submit">
+                    Enviar código
+                </button>
+            </form>
+
+            <p class="auth__meta">
+                <a class="link" href="login.php">Volver al inicio de sesión</a>
+            </p>
+        </div>
+    </main>
+
+    <?php include __DIR__ . '/../includes/site-footer.php'; ?>
+
+</div>
+
+<script type="module" src="../js/validate.js"></script>
+
+<?php if ($destino !== ''): ?>
+<script>
+    // Redireccion tras enviar el correo. Va aca y no en un listener porque es
+    // una sola vez, no un evento repetible.
+    setTimeout(function () {
+        window.location.href = <?= json_encode($destino) ?>;
+    }, 2500);
+</script>
+<?php endif; ?>
+
+<!-- Boton de tema: flotante, asi no hay que insertarlo en el markup
+     diferente de cada pagina. -->
+<div class="theme-toggle">
+    <button class="theme-toggle__btn" type="button"
+            data-theme-toggle aria-pressed="false" aria-label="Cambiar a tema oscuro">
+        <svg class="icon" aria-hidden="true"><use href="#i-luna"></use></svg>
+    </button>
+</div>
+<script type="module" src="../js/theme.js"></script>
+
+<?php include __DIR__ . '/../includes/iconos.php'; ?>
 </body>
 </html>

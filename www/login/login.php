@@ -1,102 +1,160 @@
 <?php
 session_start();
-require_once __DIR__ . '../../conexion/conexion.php';
+require_once __DIR__ . '/../conexion/conexion.php';
 require_once __DIR__ . '/funciones_login.php';
 
 $mensaje = '';
+$tipo_mensaje = 'error';
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
     $password = $_POST['password'];
 
     if (empty($email) || empty($password)) {
-        $mensaje = "Complete todos los campos";
+        $mensaje = 'Completá el correo y la contraseña.';
     } else {
         try {
             $usuario = obtenerUsuario($pdo, $email);
 
-            if ($usuario) {
-                
-                if ($usuario['activo'] != 1) {
-                    $_SESSION['user_email'] = $email;
-                    $_SESSION['user_token'] = $usuario['token'];
-                    echo "<script>
-                        alert('Tu cuenta no está activada. Serás redirigido a la página de activación.');
-                        window.location.href = '../registro/activar.php';
-                    </script>";
-                    exit;
-                } elseif (password_verify($password, $usuario['password'])) {
-                    session_regenerate_id(true);
-                    $_SESSION['usuario_id'] = $usuario['id'];
-                    $_SESSION['usuario_email'] = $usuario['email'];
-                    $_SESSION['usuario_nombre'] = $usuario['nombre'];
-                    $_SESSION['logueado'] = true;
-                    if($usuario['rol_id'] == 1){
-                        $_SESSION['es_admin'] = true;
-                    } else{
-                        $_SESSION['es_admin'] = false;
-                    }
-                    
-                    header("Location: ../index.php");
-                    exit;
-                } else {
-                    $mensaje = "Email o contraseña incorrectos";
-                }
+            if (!$usuario) {
+                // Mismo mensaje para usuario inexistente y contraseña incorrecta:
+                // no revela qué correos están registrados.
+                $mensaje = 'Correo o contraseña incorrectos.';
+            } elseif ($usuario['activo'] != 1) {
+                $_SESSION['user_email'] = $email;
+                $_SESSION['user_token'] = $usuario['token'];
+                header('Location: ../registro/activar.php');
+                exit;
+            } elseif (password_verify($password, $usuario['password'])) {
+                session_regenerate_id(true);
+                $_SESSION['usuario_id'] = $usuario['id'];
+                $_SESSION['usuario_email'] = $usuario['email'];
+                $_SESSION['usuario_nombre'] = $usuario['nombre'];
+                $_SESSION['logueado'] = true;
+                $_SESSION['es_admin'] = ((int)$usuario['rol_id'] === 1);
+
+                header('Location: ../votacion.php');
+                exit;
             } else {
-                $mensaje = "Email o contraseña incorrectos";
+                $mensaje = 'Correo o contraseña incorrectos.';
             }
-        }     
-         
-                     catch (PDOException $e) {
-                        $mensaje = "Error en el sistema: " . $e->getMessage();
-                       
-                    }
-           
+        } catch (PDOException $e) {
+            error_log('Login: ' . $e->getMessage());
+            $mensaje = 'No pudimos iniciar sesión en este momento. Intentá de nuevo.';
         }
     }
+}
 
+$titulo = 'Iniciar sesión';
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
-    <link rel="stylesheet" href="../css/login.css">
-    <link rel="icon" href="../assets/img/Logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><?= htmlspecialchars($titulo) ?> | ISFT 177</title>
+        <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
+         preconnect evita el round-trip extra al pedir la hoja de estilos. -->
+    <?php include __DIR__ . '/../includes/theme-inline.php'; ?>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Lato:wght@300;400;700&display=swap">
+    <link rel="stylesheet" href="../css/tokens.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/icons.css">
+    <link rel="stylesheet" href="../css/theme-toggle.css">
+    <link rel="stylesheet" href="../css/nav.css">
+    <link rel="stylesheet" href="../css/auth.css">
 </head>
-
 <body>
-    <div class="login-container">
-        <div class="logo-container">
-            <img src="../Logo/logoisft177.png" alt="Logo ISFT 177" class="logo">
+<div class="auth">
+
+    <aside class="auth__brand">
+        <picture>
+            <source srcset="../Logo/logoisft177.webp" type="image/webp">
+            <img src="../Logo/logoisft177-480.png" alt="Logo del ISFT 177" class="auth__logo">
+        </picture>
+        <p class="auth__institution">ISFT N° 177</p>
+        <p class="auth__tagline">
+            Exposición de proyectos de Prácticas Profesionalizantes.
+            Cada persona emite un voto por año.
+        </p>
+    </aside>
+
+    <main class="auth__main" id="contenido">
+        <div class="auth__card">
+            <h1 class="auth__title"><?= htmlspecialchars($titulo) ?></h1>
+            <p class="auth__lead">Ingresá con el correo con el que te registraste.</p>
+
+            <?php if ($mensaje !== ''): ?>
+                <div class="alert alert--error" role="alert">
+                    <svg class="icon icon--sm" aria-hidden="true"><use href="#i-alerta"></use></svg>
+                    <span><?= htmlspecialchars($mensaje) ?></span>
+                </div>
+            <?php endif; ?>
+
+            <form class="auth__form" method="post" action="" novalidate data-validate="login">
+
+                <div class="field">
+                    <label class="field__label" for="email">Correo electrónico</label>
+                    <input
+                        class="field__input"
+                        type="email"
+                        id="email"
+                        name="email"
+                        autocomplete="email"
+                        inputmode="email"
+                        placeholder="nombre@correo.com"
+                        required
+                        <?= $mensaje !== '' ? 'aria-invalid="true"' : '' ?>>
+                </div>
+
+                <div class="field field--password">
+                    <label class="field__label" for="password">Contraseña</label>
+                    <input
+                        class="field__input"
+                        type="password"
+                        id="password"
+                        name="password"
+                        autocomplete="current-password"
+                        required
+                        <?= $mensaje !== '' ? 'aria-invalid="true"' : '' ?>>
+                    <button type="button" class="field__toggle" data-toggle-password="password"
+                            aria-label="Mostrar contraseña" aria-pressed="false">
+                        <svg class="icon icon--sm" aria-hidden="true"><use href="#i-ojo"></use></svg>
+                    </button>
+                </div>
+
+                <button class="btn btn--primary btn--block" type="submit">Ingresar</button>
+            </form>
+
+            <p class="auth__meta">
+                <a class="link" href="recuperar.php">¿Olvidaste tu contraseña?</a>
+            </p>
+            <p class="auth__meta">
+                ¿No tenés cuenta? <a class="link" href="../registro/registro.php">Registrate acá</a>
+            </p>
         </div>
-        <h2>Iniciar Sesión</h2>
+    </main>
 
-        <?php if (!empty($mensaje)): ?>
-            <p style="color:red;"><?= htmlspecialchars($mensaje) ?></p>
-        <?php endif; ?>
+    <?php include __DIR__ . '/../includes/site-footer.php'; ?>
 
-        <form action="" method="post">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" required>
+</div>
 
-            <label for="password">Contraseña</label>
-            <div class="password-wrapper">
-                <input type="password" id="password" name="password" required placeholder="Tu contraseña">
-                <span class="toggle-password" data-target="password">👁️‍🗨️</span>
-            </div>
+<script type="module" src="../js/validate.js"></script>
+<script type="module" src="../js/toggle-password.js"></script>
 
-            <button type="submit">Ingresar</button>
-            <p><a href="../registro/registro.php">¿No tenés cuenta? Registrate aquí</a></p>
-            <p><a href="recuperar.php">¿Olvidaste tu contraseña?</a></p>
-        </form>
-    </div>
-    
-    <footer class="main-footer">
-        <p>Desarrollado por Alumnos de 2do de Sistemas - ISFT N° 177</p>
-    </footer>
-    
-    <script src="../js/ocultar_contraseña.js"></script>
+<!-- Boton de tema: flotante, asi no hay que insertarlo en el markup
+     diferente de cada pagina. -->
+<div class="theme-toggle">
+    <button class="theme-toggle__btn" type="button"
+            data-theme-toggle aria-pressed="false" aria-label="Cambiar a tema oscuro">
+        <svg class="icon" aria-hidden="true"><use href="#i-luna"></use></svg>
+    </button>
+</div>
+<script type="module" src="../js/theme.js"></script>
+
+<?php include __DIR__ . '/../includes/iconos.php'; ?>
 </body>
 </html>

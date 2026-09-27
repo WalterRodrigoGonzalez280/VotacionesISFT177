@@ -1,175 +1,258 @@
 <?php
+/**
+ * Pantalla de activacion Y de definicion de contrasena.
+ *
+ * Son el mismo formulario con una diferencia: si la cuenta tiene un token
+ * pendiente hay que escribir el codigo de 4 digitos; si ya esta activa y solo
+ * vino a cambiar la contrasena, el codigo no aplica y se pide solo la nueva.
+ *
+ * El flag `activo` NO servia para decidir esto. Antes la condicion era
+ * `if (!$user['activo'])` para mostrar el formulario, asi que un usuario que ya
+ * estaba activo (justo a quien se le olvido la contrasena) caia en un callejon
+ * sin salida: le decian "tu cuenta ya esta activada" y no le dejaban cambiar
+ * la contrasena. La condicion correcta es si hay token pendiente o no.
+ */
 session_start();
-require_once '../conexion/conexion.php';
-require_once 'generar_token.php'; 
+require_once __DIR__ . '/../conexion/conexion.php';
+require_once __DIR__ . '/generar_token.php';
 
-
-if (!isset($_SESSION['user_email']) || !isset($_SESSION['user_token'])) {
+if (empty($_SESSION['user_email'])) {
     header('Location: registro.php');
     exit;
 }
 
 $user_email = $_SESSION['user_email'];
-$user_token = $_SESSION['user_token'];
-$error_message = '';
-$success_message = '';
-$redirigir_login = false;
+$error = '';
+$info = '';
+$redirigir = false;
 
-
-$stmt = $pdo->prepare("SELECT token, activo FROM usuarios WHERE email = ?");
+$stmt = $pdo->prepare('SELECT token, activo FROM usuarios WHERE email = ?');
 $stmt->execute([$user_email]);
-$user = $stmt->fetch();
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
 
- 
 if (!$user) {
     session_destroy();
     header('Location: registro.php');
     exit;
 }
 
+/** Hay un codigo esperando que se ingrese. */
+$pide_codigo = ($user['token'] !== null && $user['token'] !== '');
 
-if ($user['activo']) {
-    $success_message = '¡Tu cuenta ya está activada! Puedes iniciar sesión.';
+if ($pide_codigo) {
+    $info = 'Ingresá el código que te enviamos por correo para confirmar la operación.';
+} elseif ((int)$user['activo'] === 1) {
+    $info = 'Elegí tu contraseña nueva para seguir entrando con esta cuenta.';
+} else {
+    $info = 'Ingresá el código que te enviamos por correo y definí tu contraseña.';
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-
-   
     if (isset($_POST['generar_token'])) {
+        // `=== true` es obligatorio: el string de error es truthy en PHP.
         $resultado = generarNuevoToken($pdo, $user_email);
-        if ($resultado) {
-            $success_message = '✓ Token generado y enviado por correo exitosamente.';
+
+        if ($resultado === true) {
+            $info = 'Te enviamos un código nuevo por correo.';
         } else {
-            $error_message = '✗ Error al generar o enviar el token.';
+            $error = is_string($resultado) ? $resultado : 'No pudimos enviar el correo.';
         }
-       
-        $stmt = $pdo->prepare("SELECT token, activo FROM usuarios WHERE email = ?");
+
+        $stmt = $pdo->prepare('SELECT token, activo FROM usuarios WHERE email = ?');
         $stmt->execute([$user_email]);
-        $user = $stmt->fetch();
-    }
-  
-    else {
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $pide_codigo = ($user['token'] !== null && $user['token'] !== '');
+    } else {
         $input_token = trim($_POST['token'] ?? '');
         $password = $_POST['password'] ?? '';
-        $confirm_password = $_POST['confirm_password'] ?? '';
+        $confirm = $_POST['confirm_password'] ?? '';
 
-       
-        if (empty($input_token) || empty($password) || empty($confirm_password)) {
-            $error_message = 'Todos los campos son requeridos.';
-        } elseif (!preg_match('/^[0-9]{4}$/', $input_token)) {
-            $error_message = 'El código debe ser de exactamente 4 dígitos numéricos.';
-        } elseif ($password !== $confirm_password) {
-            $error_message = 'Las contraseñas no coinciden.';
-        } elseif (!preg_match('/^(?=.*[A-Z])(?=.*[0-9]).{6,}$/', $password)) {
-            $error_message = 'La contraseña debe tener al menos 6 caracteres, una letra mayúscula y un número.';
-        } elseif ($input_token !== $user['token']) {
-            $error_message = 'Código incorrecto. Verifica que hayas ingresado correctamente.';
+        // El codigo solo es obligatorio si hay uno pendiente.
+        $falta_codigo = $pide_codigo && $input_token === '';
+        $falta_password = $password === '';
+        $falta_confirm = $confirm === '';
+
+        if ($falta_codigo || $falta_password || $falta_confirm) {
+            $error = 'Completá todos los campos pedidos.';
+        } elseif ($pide_codigo && !preg_match('/^\d{4}$/', $input_token)) {
+            $error = 'El código tiene 4 dígitos.';
+        } elseif ($password !== $confirm) {
+            $error = 'Las contraseñas no coinciden.';
+        } elseif (!preg_match('/^(?=.*[A-Z])(?=.*\d).{6,}$/', $password)) {
+            $error = 'La contraseña necesita al menos 6 caracteres, una mayúscula y un número.';
+        } elseif ($pide_codigo && $input_token !== $user['token']) {
+            $error = 'El código no es correcto. Revisá el correo.';
         } else {
-            
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
             try {
-                $stmt = $pdo->prepare("UPDATE usuarios SET password = ?, activo = 1,  token = NULL WHERE email = ?");
-                $stmt->execute([$hashed_password, $user_email]);
+                $stmt = $pdo->prepare(
+                    'UPDATE usuarios SET password = ?, activo = 1, token = NULL WHERE email = ?'
+                );
+                $stmt->execute([password_hash($password, PASSWORD_DEFAULT), $user_email]);
 
-                $success_message = '¡Cuenta activada exitosamente! Redirigiendo al login...';
-                $redirigir_login = true;
-                
-                unset($_SESSION['user_email']);
-                unset($_SESSION['user_token']);
+                $info = (int)$user['activo'] === 1
+                    ? '¡Contraseña actualizada! Te llevamos al inicio de sesión.'
+                    : '¡Cuenta activada! Te llevamos al inicio de sesión.';
+                $redirigir = true;
+
+                unset($_SESSION['user_email'], $_SESSION['user_token']);
             } catch (PDOException $e) {
-                $error_message = 'Error al activar la cuenta. Inténtalo de nuevo.';
-                error_log("Error en activación: " . $e->getMessage());
+                error_log('Activación: ' . $e->getMessage());
+                $error = 'No pudimos guardar la contraseña. Intentá de nuevo.';
             }
         }
     }
 }
+
+$titulo = $pide_codigo ? 'Confirmar operación' : 'Definir contraseña';
 ?>
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Activación de Cuenta</title>
-    <link rel="stylesheet" href="../css/activar.css">
-    <link rel="icon" href="../assets/img/Logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><?= htmlspecialchars($titulo) ?> | ISFT 177</title>
+        <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
+         preconnect evita el round-trip extra al pedir la hoja de estilos. -->
+    <?php include __DIR__ . '/../includes/theme-inline.php'; ?>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Lato:wght@300;400;700&display=swap">
+    <link rel="stylesheet" href="../css/tokens.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/icons.css">
+    <link rel="stylesheet" href="../css/theme-toggle.css">
+    <link rel="stylesheet" href="../css/nav.css">
+    <link rel="stylesheet" href="../css/auth.css">
 </head>
-<div class="form-container">
-    <h1>Activación de Cuenta</h1>
-    <div id="mensajes">
-        <?php if ($error_message): ?>
-            <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
-        <?php endif; ?>
-        <?php if ($success_message): ?>
-            <div class="success"><?php echo htmlspecialchars($success_message); ?></div>
-        <?php endif; ?>
-    </div>
-    <!-- Spinner -->
-    <div id="loading" class="loading" style="display:none;">
-        <div class="spinner"></div>
-        <p>Procesando...</p>
-    </div>
+<body>
+<div class="auth">
 
-    <?php if (!$user['is_active']): ?>
-        <form method="POST" id="form-activacion">
-            <div class="form-group">
-                <label for="token">Ingresa el código de 4 dígitos:</label>
-                <input type="text" id="token" name="token" required placeholder="Ejemplo: 1234"
-                    pattern="[0-9]{4}" maxlength="4" minlength="4" 
-                    title="Ingresa un código de 4 dígitos numéricos"
-                    value="<?php echo htmlspecialchars($_POST['token'] ?? ''); ?>">
-            </div>
+    <aside class="auth__brand">
+        <picture>
+            <source srcset="../Logo/logoisft177.webp" type="image/webp">
+            <img src="../Logo/logoisft177-480.png" alt="Logo del ISFT 177" class="auth__logo">
+        </picture>
+        <p class="auth__institution">ISFT N° 177</p>
+        <p class="auth__tagline">
+            Exposición de proyectos de Prácticas Profesionalizantes.
+            Cada persona emite un voto por año.
+        </p>
+    </aside>
 
-            <div class="form-group">
-                <label for="password">Contraseña:</label>
-                <div class="password-wrapper">
-                    <input type="password" id="password" name="password" required
-                        pattern="(?=.*[A-Z])(?=.*\d).{6,}"
-                        title="La contraseña debe tener al menos 6 caracteres, una letra mayúscula y un número">
-                    <span class="toggle-password" data-target="password">👁️‍🗨️</span>
+    <main class="auth__main" id="contenido">
+        <div class="auth__card">
+            <h1 class="auth__title"><?= htmlspecialchars($titulo) ?></h1>
+            <p class="auth__lead"><?= htmlspecialchars($info) ?></p>
+
+            <?php if ($error !== ''): ?>
+                <div class="alert alert--error" role="alert">
+                    <svg class="icon icon--sm" aria-hidden="true"><use href="#i-alerta"></use></svg>
+                    <span><?= htmlspecialchars($error) ?></span>
                 </div>
-            </div>
+            <?php endif; ?>
 
-            <div class="form-group">
-                <label for="confirm_password">Confirmar contraseña:</label>
-                <div class="password-wrapper">
-                    <input type="password" id="confirm_password" name="confirm_password" required
-                        placeholder="Confirma tu contraseña" minlength="6">
-                    <span class="toggle-password" data-target="confirm_password">👁️‍🗨️</span>
+            <form class="auth__form" method="post" action="" novalidate data-validate="activar">
+
+                <?php if ($pide_codigo): ?>
+                    <div class="field">
+                        <label class="field__label" for="token">Código de 4 dígitos</label>
+                        <input
+                            class="field__input token-input"
+                            type="text"
+                            id="token"
+                            name="token"
+                            inputmode="numeric"
+                            data-digits-only
+                            pattern="\d{4}"
+                            maxlength="4"
+                            autocomplete="one-time-code"
+                            placeholder="0000"
+                            required>
+                    </div>
+                <?php endif; ?>
+
+                <div class="field field--password">
+                    <label class="field__label" for="password">
+                        <?= $pide_codigo ? 'Contraseña nueva' : 'Contraseña' ?>
+                    </label>
+                    <input
+                        class="field__input"
+                        type="password"
+                        id="password"
+                        name="password"
+                        autocomplete="new-password"
+                        aria-describedby="reqs"
+                        required>
+                    <button type="button" class="field__toggle" data-toggle-password="password"
+                            aria-label="Mostrar contraseña" aria-pressed="false">
+                        <svg class="icon" aria-hidden="true"><use href="#i-ojo"></use></svg>
+                    </button>
+                    <ul class="reqs" id="reqs">
+                        <li>Mínimo 6 caracteres.</li>
+                        <li>Al menos una mayúscula.</li>
+                        <li>Al menos un número.</li>
+                    </ul>
                 </div>
-            </div>
 
-            <button type="submit" class="btn btn-success" id="submitBtn">Activar Cuenta</button>
-        </form>
+                <div class="field field--password">
+                    <label class="field__label" for="confirm_password">Repetí la contraseña</label>
+                    <input
+                        class="field__input"
+                        type="password"
+                        id="confirm_password"
+                        name="confirm_password"
+                        autocomplete="new-password"
+                        data-match="password"
+                        data-match-label="la contraseña"
+                        required>
+                    <button type="button" class="field__toggle" data-toggle-password="confirm_password"
+                            aria-label="Mostrar contraseña" aria-pressed="false">
+                        <svg class="icon" aria-hidden="true"><use href="#i-ojo"></use></svg>
+                    </button>
+                </div>
 
-       
-        <form method="POST" action="" style="margin-top: 15px;">
-            <button type="submit" name="generar_token" value="1" class="btn btn-secondary"
-                onclick="return confirm('¿Estás seguro de que quieres generar un nuevo token? El actual será invalidado.')">
-                Generar Nuevo Token
-            </button>
-        </form>
-    <?php endif; ?>
-    <div class="register-link" style="margin-top: 20px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
-        <p><a href="registro.php">← Volver al registro</a></p>
-        <p><a href="../login/login.php">→ Iniciar sesión</a></p>
-    </div>
+                <button class="btn btn--primary btn--block" type="submit">
+                    <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                    <?= $pide_codigo ? 'Confirmar' : 'Guardar contraseña' ?>
+                </button>
+            </form>
+
+            <form class="auth__meta" method="post" action="">
+                <button class="btn btn--ghost" type="submit" name="generar_token" value="1">
+                    ¿No llegó el código? Enviar otro
+                </button>
+            </form>
+
+            <p class="auth__meta">
+                <a class="link" href="registro.php">← Volver al registro</a>
+            </p>
+        </div>
+    </main>
+
+    <?php include __DIR__ . '/../includes/site-footer.php'; ?>
+
 </div>
+
+<script type="module" src="../js/validate.js"></script>
+<script type="module" src="../js/toggle-password.js"></script>
+<?php if ($redirigir): ?>
 <script>
-    <?php if ($redirigir_login): ?>
-        // Redirigir al login después de 2 segundos
-        setTimeout(function() {
-            window.location.href = '../login/login.php';
-        }, 2000);
-    <?php endif; ?>
+    setTimeout(function () { window.location.href = '../login/login.php'; }, 2500);
 </script>
-<script src="../js/ocultar_contraseña.js"></script>
-<script src="../js/activar_correo.js"></script>
+<?php endif; ?>
 
-<footer class="main-footer">
-    <p>Desarrollado por Alumnos de 2do de Sistemas - ISFT N° 177</p>
-</footer>
+<!-- Boton de tema: flotante, asi no hay que insertarlo en el markup
+     diferente de cada pagina. -->
+<div class="theme-toggle">
+    <button class="theme-toggle__btn" type="button"
+            data-theme-toggle aria-pressed="false" aria-label="Cambiar a tema oscuro">
+        <svg class="icon" aria-hidden="true"><use href="#i-luna"></use></svg>
+    </button>
+</div>
+<script type="module" src="../js/theme.js"></script>
+
+<?php include __DIR__ . '/../includes/iconos.php'; ?>
 </body>
-
 </html>

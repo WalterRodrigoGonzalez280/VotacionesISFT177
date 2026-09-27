@@ -1,0 +1,387 @@
+/* ==========================================================================
+   components.css - primitivas visuales compartidas
+   ==========================================================================
+   Importar despues de tokens.css. Solo lo que usa mas de una pagina.
+   Tema oscuro: superficies carb, texto claro, borde dorado tenue.
+   ========================================================================== */
+
+/* ---------- Layout ---------- */
+
+.shell {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 100dvh;
+}
+
+.shell__main { flex: 1; }
+
+.wrap {
+    inline-size: min(100% - var(--s-5), var(--wrap));
+    margin-inline: auto;
+}
+
+.wrap--narrow { --wrap: var(--wrap-narrow); }
+
+/* Encabezado de pagina */
+.topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-3);
+    padding-block: var(--s-4) var(--s-5);
+    border-block-end: 1px solid var(--c-line);
+    background: var(--c-bg);
+}
+
+.topbar__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    text-decoration: none;
+    color: inherit;
+    margin-inline-end: auto;
+}
+
+.topbar__logo { inline-size: 2.75rem; flex: none; }
+
+.topbar__name {
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    color: var(--c-white);
+    line-height: var(--lh-tight);
+}
+
+.topbar__sub {
+    display: block;
+    font-size: var(--fs-xs);
+    font-weight: 400;
+    color: var(--c-muted);
+}
+
+.topbar__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    flex-wrap: wrap;
+}
+
+.foot {
+    padding-block: var(--s-5) var(--s-6);
+    border-block-start: 1px solid var(--c-line);
+    text-align: center;
+    color: var(--c-muted);
+    font-size: var(--fs-xs);
+}
+
+/* ---------- Botones ---------- */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s-2);
+    padding: 0.7em 1.5em;
+    border: 1px solid transparent;
+    border-radius: var(--r-pill);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration: none;
+    text-align: center;
+    transition: background var(--t-fast), border-color var(--t-fast),
+                color var(--t-fast), transform var(--t-fast);
+}
+
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+
+/* CTA: dorado con texto negro, 8,70:1 */
+.btn--primary {
+    background: var(--c-gold);
+    color: var(--c-on-gold);
+    border-color: var(--c-gold-text);
+    box-shadow: var(--sh-1);
+}
+.btn--primary:hover { background: var(--c-gold-dark); border-color: var(--c-gold-dark); }
+
+.btn--secondary {
+    background: transparent;
+    color: var(--c-gold-text);
+    border-color: var(--c-line-strong);
+}
+.btn--secondary:hover {
+    background: var(--c-gold-tint);
+    border-color: var(--c-gold-text);
+    color: var(--c-gold-soft);
+}
+
+.btn--ghost {
+    background: transparent;
+    color: var(--c-muted);
+    border-color: transparent;
+    padding-inline: var(--s-3);
+}
+.btn--ghost:hover {
+    color: var(--c-gold-text);
+    background: var(--c-gold-tint);
+}
+
+.btn--danger {
+    background: transparent;
+    color: var(--c-danger-ink);
+    border-color: var(--c-danger-line);
+}
+.btn--danger:hover { background: var(--c-danger-bg); border-color: var(--c-danger); }
+
+.btn--block { inline-size: 100%; }
+
+.btn--sm {
+    padding: 0.45em 1em;
+    font-size: var(--fs-xs);
+}
+
+/* Tamano de contacto. Con mouse (pointer: fine) queda compacto; con el dedo
+   (pointer: coarse) todo control baja a 44px, que es lo que recomiendan
+   Apple HIG y Material. min-block-size y no height: asi un boton de dos
+   lineas crece en vez de cortarse.
+
+   Antes el boton de votar usaba .btn--sm (25px de alto), o sea que la accion
+   principal de la pagina era el control mas chico. */
+@media (pointer: coarse) {
+    .btn,
+    .btn--sm,
+    .icon-btn,
+    .field__toggle,
+    .theme-toggle__btn {
+        min-block-size: 2.75rem;   /* 44px */
+    }
+
+    .btn--sm { padding-inline: 1.1em; }
+    .icon-btn { inline-size: 2.75rem; block-size: 2.75rem; }
+    .field__toggle { inline-size: 2.75rem; block-size: 2.75rem; }
+}
+
+/* ---------- Campos ---------- */
+
+.field { display: grid; gap: var(--s-2); }
+
+.field__label {
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    color: var(--c-white);
+}
+
+.field__hint {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-2);
+    font-size: var(--fs-xs);
+    color: var(--c-muted);
+}
+
+.field__input {
+    inline-size: 100%;
+    padding: 0.7em 0.9em;
+    background: var(--c-surface-2);
+    color: var(--c-white);
+    border: 1px solid var(--c-line);
+    border-radius: var(--r-sm);
+    font-size: var(--fs-base);
+    transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.field__input::placeholder { color: var(--c-placeholder); }
+.field__input:hover { border-color: var(--c-line-strong); }
+
+.field__input:focus {
+    border-color: var(--c-gold-text);
+    box-shadow: 0 0 0 3px var(--c-gold-tint);
+    outline: none;
+}
+
+.field__input:focus-visible {
+    outline: 3px solid var(--c-gold);
+    outline-offset: 1px;
+}
+
+.field__input[aria-invalid='true'] { border-color: var(--c-danger); }
+
+/* Campo de contrasena con boton de mostrar/ocultar */
+.field--password { position: relative; }
+.field--password .field__input { padding-inline-end: 3.25rem; }
+
+.field__toggle {
+    position: absolute;
+    inset-block-end: 0.3rem;
+    inset-inline-end: 0.3rem;
+    display: grid;
+    place-items: center;
+    inline-size: 2.25rem;
+    block-size: 2.25rem;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: var(--r-sm);
+    color: var(--c-muted);
+}
+.field__toggle:hover { background: var(--c-surface-3); color: var(--c-gold-text); }
+
+/* ---------- Tarjetas ---------- */
+
+.card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--r-md);
+    padding: var(--s-5);
+    box-shadow: var(--sh-2);
+}
+
+.card__title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin-block-end: var(--s-3);
+    padding-block-end: var(--s-2);
+    border-block-end: 1px solid var(--c-line-strong);
+}
+
+.card__title .icon { color: var(--c-gold-soft); }
+
+.card__body > * + * { margin-block-start: var(--s-3); }
+
+/* ---------- Insignias de estado ---------- */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: 0.35em 1em;
+    border: 1px solid var(--c-line-strong);
+    border-radius: var(--r-pill);
+    background: var(--c-surface);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    color: var(--c-white);
+}
+
+.badge--lg { padding: 0.5em 1.3em; font-size: var(--fs-md); }
+
+.badge__dot {
+    inline-size: 0.5rem;
+    block-size: 0.5rem;
+    border-radius: 50%;
+    background: var(--c-muted);
+    flex: none;
+}
+
+.badge--open  { border-color: var(--c-ok-line);  color: var(--c-ok-ink);  background: var(--c-ok-bg); }
+.badge--open  .badge__dot { background: var(--c-ok); }
+
+.badge--soon  { border-color: var(--c-line-gold); color: var(--c-gold-text); }
+.badge--soon  .badge__dot { background: var(--c-gold); }
+
+.badge--closed { border-color: var(--c-danger-line); color: var(--c-danger-ink); background: var(--c-danger-bg); }
+.badge--closed .badge__dot { background: var(--c-danger); }
+
+.tag {
+    display: inline-block;
+    padding: 0.15em 0.6em;
+    border-radius: var(--r-sm);
+    background: var(--c-gold-tint);
+    border: 1px solid var(--c-line-strong);
+    color: var(--c-gold-soft);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+}
+
+/* ---------- Alertas ---------- */
+
+.alert {
+    display: flex;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    border: 1px solid;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-sm);
+    border-inline-start-width: 3px;
+}
+
+.alert--error { background: var(--c-danger-bg); border-color: var(--c-danger-line); color: var(--c-danger-ink); }
+.alert--ok    { background: var(--c-ok-bg);     border-color: var(--c-ok-line);     color: var(--c-ok-ink); }
+.alert--info  { background: var(--c-info-bg);   border-color: var(--c-info-line);   color: var(--c-info-ink); }
+
+/* ---------- Lista de pasos ---------- */
+
+.steps { display: grid; gap: var(--s-3); counter-reset: step; }
+
+.steps__item {
+    display: flex;
+    gap: var(--s-3);
+    align-items: flex-start;
+    color: var(--c-muted);
+}
+
+.steps__item::before {
+    counter-increment: step;
+    content: counter(step);
+    flex: none;
+    display: grid;
+    place-items: center;
+    inline-size: 1.75rem;
+    block-size: 1.75rem;
+    border-radius: 50%;
+    background: var(--c-gold);
+    color: var(--c-on-gold);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+}
+
+/* ---------- Dialog nativo ----------
+   Compartido por admin.php y votacion.php. Un <dialog> nativo da foco
+   atrapado, Escape y bloqueo del scroll de fondo sin una linea de JS. */
+
+.dialog {
+    inline-size: min(100% - var(--s-5), 26rem);
+    padding: 0;
+    background: var(--c-surface);
+    color: var(--c-muted);
+    border: 1px solid var(--c-line-strong);
+    border-radius: var(--r-md);
+    box-shadow: var(--sh-3);
+}
+
+.dialog::backdrop { background: var(--c-backdrop); }
+
+.dialog__form { display: grid; gap: var(--s-4); padding: var(--s-5); }
+.dialog__title { font-size: var(--fs-lg); }
+
+.dialog__actions { display: flex; gap: var(--s-2); justify-content: flex-end; }
+
+.dialog__text { color: var(--c-muted); font-size: var(--fs-sm); }
+.dialog__text strong { color: var(--c-white); }
+
+.dialog__warn {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-2);
+    padding: var(--s-2) var(--s-3);
+    background: var(--c-warn-bg);
+    border: 1px solid var(--c-warn-line);
+    border-radius: var(--r-sm);
+    color: var(--c-warn-ink);
+    font-size: var(--fs-xs);
+}
+
+.dialog__warn .icon { margin-block-start: 0.1em; flex: none; }
+
+
+/* ---------- Responsive ---------- */
+
+@media (min-width: 48rem) {
+    .card { padding: var(--s-6); }
+    .steps { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+}
+
+@media (min-width: 64rem) {
+    .wrap--wide { --wrap: 76rem; }
+}

@@ -1,294 +1,291 @@
 <?php
+/**
+ * Landing publica de bienvenida.
+ *
+ * No exige sesion: es la puerta de entrada del sitio. Si el visitante ya
+ * esta logueado, el boton principal lo manda a votacion.php o a admin.php.
+ *
+ * Decision de diseno: NO muestra los resultados parciales. Ver el conteo
+ * mientras la votacion esta abierta sesga el voto de quien llega despues.
+ * Los ganadores por grupo solo se revelan cuando la votacion termino, que es
+ * lo mismo que hace el panel de administracion.
+ */
 session_start();
-require_once 'conexion/conexion.php';
-if (empty($_SESSION["logueado"]) || $_SESSION["logueado"] !== true) {
-    header('Location: login/login.php');
-    exit;
-}
+require_once __DIR__ . '/conexion/conexion.php';
 
-// Verificar horario de votación
-$votacion_abierta = true;
-$tiempo_restante = null;
-$mensaje_espera = null;
+$es_admin = !empty($_SESSION['es_admin']) && $_SESSION['es_admin'] === true;
+$logueado = !empty($_SESSION['logueado']) && $_SESSION['logueado'] === true;
+
+$estado = 'desconocido';
+$ventana = null;
+$ganadores = [];
+$error_bd = false;
 
 try {
-    $stmt = $pdo->prepare("SELECT inicio_votacion, fin_votacion FROM configuracion_votacion WHERE activo = 1 ORDER BY id DESC LIMIT 1");
+    $stmt = $pdo->prepare(
+        'SELECT inicio_votacion, fin_votacion
+           FROM configuracion_votacion
+          WHERE activo = 1
+          ORDER BY id DESC
+          LIMIT 1'
+    );
     $stmt->execute();
-    $configuracion = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if ($configuracion) {
+    $ventana = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($ventana) {
         $ahora = new DateTime();
-        $inicio = new DateTime($configuracion['inicio_votacion']);
-        $fin = new DateTime($configuracion['fin_votacion']);
-        
+        $inicio = new DateTime($ventana['inicio_votacion']);
+        $fin = new DateTime($ventana['fin_votacion']);
+
         if ($ahora < $inicio) {
-            $votacion_abierta = false;
-            $intervalo = $ahora->diff($inicio);
-            $tiempo_restante = [
-                'dias' => $intervalo->days,
-                'horas' => $intervalo->h,
-                'minutos' => $intervalo->i,
-                'segundos' => $intervalo->s
-            ];
-            $mensaje_espera = "La votación comenzará el " . $inicio->format('d/m/Y \a \l\a\s H:i');
-        } else if ($ahora > $fin) {
-            $votacion_abierta = false;
-            $mensaje_espera = "La votación ha finalizado";
+            $estado = 'pendiente';
+        } elseif ($ahora > $fin) {
+            $estado = 'finalizada';
+        } else {
+            $estado = 'abierta';
         }
     }
-} catch (PDOException $e) {
-    error_log("Error verificando horario de votación: " . $e->getMessage());
-}
 
-// NO redirigir automáticamente a admin.php - permitir que el admin vea la página de votos
-// Los administradores pueden usar el botón en admin.php para volver al panel
+    if ($estado === 'finalizada') {
+        $stmt = $pdo->prepare(
+            'SELECT s.grupo_id, g.nombre AS grupo_nombre, s.nombre AS subgrupo_nombre, COUNT(v.id) AS votos
+               FROM subgrupos s
+               JOIN grupos g ON s.grupo_id = g.id
+               LEFT JOIN votos v ON s.id = v.subgrupo_id
+              WHERE s.activo = TRUE
+              GROUP BY s.grupo_id, g.nombre, s.id, s.nombre
+              ORDER BY s.grupo_id, s.id'
+        );
+        $stmt->execute();
 
-// Si el usuario es administrador, mostrar mensaje especial
-$es_admin = isset($_SESSION['es_admin']) && $_SESSION['es_admin'] === true;
-
-// Verificar si el usuario ya completó sus 3 votos (solo para usuarios NO admin)
-if (isset($_SESSION['usuario_id']) && !$es_admin) {
-    try {
-        $stmt = $pdo->prepare("SELECT votos_1er_año, votos_2do_año, votos_3er_año FROM usuarios WHERE id = ?");
-        $stmt->execute([$_SESSION['usuario_id']]);
-        $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($usuario) {
-            // Verificar si todos los votos están completos
-            $votos_completos = ($usuario['votos_1er_año'] == 1 && $usuario['votos_2do_año'] == 1 && $usuario['votos_3er_año'] == 1);
-            
-            if ($votos_completos) {
-                // El usuario ya completó sus votos, redirigir a la página de agradecimiento
-                header('Location: gracias.php');
-                exit;
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $fila) {
+            $gid = (int)$fila['grupo_id'];
+            if (!isset($ganadores[$gid])) {
+                $ganadores[$gid] = [
+                    'grupo' => $fila['grupo_nombre'],
+                    'nombre' => $fila['subgrupo_nombre'],
+                    'votos' => 0,
+                ];
+            }
+            if ((int)$fila['votos'] > $ganadores[$gid]['votos']) {
+                $ganadores[$gid]['nombre'] = $fila['subgrupo_nombre'];
+                $ganadores[$gid]['votos'] = (int)$fila['votos'];
             }
         }
-    } catch (PDOException $e) {
-        error_log("Error verificando votos del usuario: " . $e->getMessage());
-    }
-}
-
-// Obtener grupos y subgrupos
-try {
-    $stmt = $pdo->prepare("
-        SELECT s.id, s.nombre, s.grupo_id, g.nombre as grupo_nombre,
-               COUNT(v.id) as votos
-        FROM subgrupos s 
-        JOIN grupos g ON s.grupo_id = g.id 
-        LEFT JOIN votos v ON s.id = v.subgrupo_id
-        WHERE s.activo = TRUE 
-        GROUP BY s.id, s.nombre, s.grupo_id, g.nombre
-        ORDER BY s.grupo_id, s.id
-    ");
-    $stmt->execute();
-    $subgrupos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    $grupos_organizados = [];
-    foreach ($subgrupos as $subgrupo) {
-        $grupo_id = $subgrupo['grupo_id'];
-        if (!isset($grupos_organizados[$grupo_id])) {
-            $grupos_organizados[$grupo_id] = [
-                'nombre' => $subgrupo['grupo_nombre'],
-                'subgrupos' => []
-            ];
-        }
-        $grupos_organizados[$grupo_id]['subgrupos'][] = $subgrupo;
     }
 } catch (PDOException $e) {
-    $grupos_organizados = [];
-    error_log("Error obteniendo grupos: " . $e->getMessage());
+    error_log('Landing: ' . $e->getMessage());
+    $error_bd = true;
 }
-?>
 
+$estados = [
+    'abierta' => [
+        'icono' => 'check', 'titulo' => 'Votación abierta',
+        'detalle' => 'Podés ingresar y votar.', 'clase' => 'badge--open',
+    ],
+    'pendiente' => [
+        'icono' => 'reloj', 'titulo' => 'Todavía no comenzó',
+        'detalle' => 'Abre en la fecha indicada.', 'clase' => 'badge--soon',
+    ],
+    'finalizada' => [
+        'icono' => 'bloqueo', 'titulo' => 'Votación finalizada',
+        'detalle' => 'Ya no se pueden emitir votos.', 'clase' => 'badge--closed',
+    ],
+    'desconocido' => [
+        'icono' => 'calendario', 'titulo' => 'Votación sin configurar',
+        'detalle' => 'Todavía no se definieron las fechas.', 'clase' => 'badge--soon',
+    ],
+];
+
+if ($es_admin) {
+    $cta = ['texto' => 'Ir al panel de administración', 'href' => 'admin.php', 'icono' => 'config'];
+} elseif ($logueado) {
+    $cta = [
+        'texto' => $estado === 'abierta' ? 'Ir a votar' : 'Ir a la votación',
+        'href' => 'votacion.php',
+        'icono' => 'urna',
+    ];
+} else {
+    $cta = ['texto' => 'Ingresar para votar', 'href' => 'login/login.php', 'icono' => 'llave'];
+}
+
+$titulo = 'Exposición de Proyectos 2025';
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Votación en Tiempo Real - ISFT 177</title>
-    <link rel="stylesheet" href="css/index.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><?= htmlspecialchars($titulo) ?> | ISFT 177</title>
+    <meta name="description" content="Exposición de proyectos del Técnico en Análisis de Sistemas del ISFT 177. Votación de proyectos por año.">
+        <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
+         preconnect evita el round-trip extra al pedir la hoja de estilos. -->
+    <?php include __DIR__ . '/includes/theme-inline.php'; ?>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Lato:wght@300;400;700&display=swap">
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/icons.css">
+    <link rel="stylesheet" href="css/theme-toggle.css">
+    <link rel="stylesheet" href="css/nav.css">
+    <link rel="stylesheet" href="css/landing.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="logout-header-button">
-                <?php if (isset($_SESSION['es_admin']) && $_SESSION['es_admin'] === true): ?>
-                    <button class="admin-panel-button" onclick="volverAlPanel()">🔧 Panel de Administración</button>
-                <?php endif; ?>
-                <button class="logout-button-header" onclick="cerrarSesion()">Cerrar Sesión</button>
-            </div>
-            <div class="logo-container-header">
-                <img src="Logo/logoisft177.png" alt="Logo ISFT 177" class="logo-header">
-            </div>
-            <h1>🗳️ Sistema de Votación en Tiempo Real</h1>
-            <p>ISFT 177 - Instituto Superior de Formación Técnica</p>
-        </div>
-        
-        <div id="eventInfoSection" class="event-info-section">
-            <div class="event-info-card">
-                <h2>🎓 Sistema de Votación – Carrera Técnico en Análisis de Sistemas</h2>
-                <div class="event-description">
-                    <p>Este sistema de votación se encuentra destinado a la <strong>exposición de proyectos</strong> de la carrera Técnico en Analista de Sistemas, en la cual participan los tres grupos de Prácticas Profesionalizantes: <strong>1º, 2º y 3º año</strong>.</p>
-                    <p>Cada grupo ha presentado su <strong>plataforma, proyecto o página desarrollada</strong> durante el ciclo lectivo.</p>
-                    <p>La votación está dirigida a los alumnos, profesores, autores y participantes de la exposición, quienes podrán elegir cuál proyecto consideran que se destacó en cada año.</p>
-                </div>
-                
-                <div class="modalidad-section">
-                    <h3>📝 Modalidad de Votación</h3>
-                    <div class="modalidad-list">
-                        <div class="modalidad-item">
-                            <span class="modalidad-icon">1️⃣</span>
-                            <p>Cada usuario podrá emitir <strong>1 (un) voto</strong> para los proyectos de <strong>1º año</strong>.</p>
-                        </div>
-                        <div class="modalidad-item">
-                            <span class="modalidad-icon">2️⃣</span>
-                            <p>Cada usuario podrá emitir <strong>1 (un) voto</strong> para los proyectos de <strong>2º año</strong>.</p>
-                        </div>
-                        <div class="modalidad-item">
-                            <span class="modalidad-icon">3️⃣</span>
-                            <p>Cada usuario podrá emitir <strong>1 (un) voto</strong> para los proyectos de <strong>3º año</strong>.</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="resultado-info">
-                    <p>📌 Una vez finalizada la votación, un docente designado dará a conocer, mediante la proyección en pantalla, el <strong>proyecto ganador de cada año</strong> y, además, el <strong>proyecto ganador general</strong> entre todos los grupos participantes.</p>
-                </div>
-            </div>
-        </div>
+<div class="shell">
+    <a class="skip-link" href="#contenido">Ir al contenido</a>
 
-        <?php if (!$votacion_abierta): ?>
-        <div class="waiting-section">
-            <div class="waiting-container">
-                <div class="waiting-icon">⏳</div>
-                <h2>La votación aún no está disponible</h2>
-                <p class="waiting-message"><?= htmlspecialchars($mensaje_espera) ?></p>
-                <?php if ($tiempo_restante): ?>
-                <div class="countdown-container">
-                    <div class="countdown-item">
-                        <span class="countdown-number" id="dias"><?= $tiempo_restante['dias'] ?></span>
-                        <span class="countdown-label">Días</span>
-                    </div>
-                    <div class="countdown-separator">:</div>
-                    <div class="countdown-item">
-                        <span class="countdown-number" id="horas"><?= str_pad($tiempo_restante['horas'], 2, '0', STR_PAD_LEFT) ?></span>
-                        <span class="countdown-label">Horas</span>
-                    </div>
-                    <div class="countdown-separator">:</div>
-                    <div class="countdown-item">
-                        <span class="countdown-number" id="minutos"><?= str_pad($tiempo_restante['minutos'], 2, '0', STR_PAD_LEFT) ?></span>
-                        <span class="countdown-label">Minutos</span>
-                    </div>
-                    <div class="countdown-separator">:</div>
-                    <div class="countdown-item">
-                        <span class="countdown-number" id="segundos"><?= str_pad($tiempo_restante['segundos'], 2, '0', STR_PAD_LEFT) ?></span>
-                        <span class="countdown-label">Segundos</span>
-                    </div>
+    <?php $nav_actual = 'inicio'; include __DIR__ . '/includes/site-header.php'; ?>
+
+    <main class="shell__main" id="contenido">
+        <div class="wrap landing">
+
+            <section class="hero" aria-labelledby="hero-title">
+                <p class="hero__eyebrow">
+                    <svg class="icon" aria-hidden="true"><use href="#i-banda"></use></svg>
+                    Prácticas Profesionalizantes
+                </p>
+
+                <h1 class="hero__title" id="hero-title"><?= htmlspecialchars($titulo) ?></h1>
+
+                <p class="hero__lead">
+                    Cada persona emite <strong>un voto</strong> para los proyectos
+                    de 1.º, 2.º y 3.º año.
+                </p>
+
+                <div class="hero__state">
+                    <p class="badge badge--lg <?= $estados[$estado]['clase'] ?>">
+                        <svg class="icon" aria-hidden="true">
+                            <use href="#i-<?= $estados[$estado]['icono'] ?>"></use>
+                        </svg>
+                        <?= htmlspecialchars($estados[$estado]['titulo']) ?>
+                    </p>
+                    <p class="hero__detail"><?= htmlspecialchars($estados[$estado]['detalle']) ?></p>
                 </div>
-                <p class="countdown-message">La página se actualizará automáticamente cuando la votación esté disponible</p>
+
+                <?php if ($ventana): ?>
+                    <p class="hero__range">
+                        <svg class="icon icon--sm" aria-hidden="true"><use href="#i-calendario"></use></svg>
+                        Del
+                        <time datetime="<?= htmlspecialchars($ventana['inicio_votacion']) ?>">
+                            <?= (new DateTime($ventana['inicio_votacion']))->format('d/m/Y H:i') ?>
+                        </time>
+                        al
+                        <time datetime="<?= htmlspecialchars($ventana['fin_votacion']) ?>">
+                            <?= (new DateTime($ventana['fin_votacion']))->format('d/m/Y H:i') ?>
+                        </time>
+                    </p>
                 <?php endif; ?>
-            </div>
-        </div>
-        <?php else: ?>
-        <!-- Mensaje especial para administradores -->
-        <?php if ($es_admin): ?>
-        <div class="admin-info-section">
-            <div class="admin-info-card">
-                <div class="admin-icon">⚙️</div>
-                <h2>Panel de Administración</h2>
-                <p class="admin-message">Como administrador, puedes ver la página de votación pero no puedes votar. Usa los botones para navegar entre las secciones del sistema.</p>
-                <div class="admin-buttons">
-                    <button class="admin-nav-btn" onclick="volverAlPanel()">🔧 Ir al Panel de Administración</button>
-                    <button class="admin-nav-btn secondary" onclick="verResultados()">📊 Ver Resultados Detallados</button>
+
+                <div class="hero__actions">
+                    <a class="btn btn--primary" href="<?= htmlspecialchars($cta['href']) ?>">
+                        <svg class="icon" aria-hidden="true"><use href="#i-<?= $cta['icono'] ?>"></use></svg>
+                        <?= htmlspecialchars($cta['texto']) ?>
+                    </a>
+                    <?php if (!$logueado): ?>
+                        <a class="btn btn--secondary" href="registro/registro.php">
+                            <svg class="icon" aria-hidden="true"><use href="#i-usuario-mas"></use></svg>
+                            Crear una cuenta
+                        </a>
+                    <?php endif; ?>
                 </div>
-                <div class="admin-separator">
-                    <span>Vista de Votación</span>
+
+                <?php if ($error_bd): ?>
+                    <p class="alert alert--error hero__alert" role="status">
+                        <svg class="icon" aria-hidden="true"><use href="#i-alerta"></use></svg>
+                        <span>No pudimos consultar el estado de la votación. Probá de nuevo en unos minutos.</span>
+                    </p>
+                <?php endif; ?>
+            </section>
+
+            <section class="card landing__block" aria-labelledby="que-es">
+                <h2 class="card__title" id="que-es">
+                    <svg class="icon" aria-hidden="true"><use href="#i-documento"></use></svg>
+                    ¿De qué se trata?
+                </h2>
+                <div class="card__body">
+                    <p>
+                        Los tres grupos de Prácticas Profesionalizantes presentaron durante el
+                        ciclo lectivo su <strong>plataforma, proyecto o página</strong>
+                        desarrollada en la carrera.
+                    </p>
+                    <p>
+                        La votación está dirigida a <strong>alumnos, docentes, autores y
+                        participantes</strong> de la exposición, para elegir qué proyecto se
+                        destacó en cada año.
+                    </p>
                 </div>
-            </div>
-        </div>
-        <?php endif; ?>
-        
-        <div class="voting-section">
-            <div class="voting-title">
-                <h2>Sistema de Votación por Grupos</h2>
-                <p>Tienes 3 votos disponibles: uno para cada grupo (1er, 2do y 3er año)</p>
-            </div>
-            
-            <div id="userInfo" style="display: none;">
-                <div class="user-card">
-                    <div class="user-header">
-                        <h3>Usuario: <span id="userName"></span></h3>
-                        <button class="logout-button" onclick="cerrarSesion()">Cerrar Sesión</button>
-                    </div>
-                    <div class="vote-status">
-                        <span id="voteStatus1er">❌ 1er Año</span>
-                        <span id="voteStatus2do">❌ 2do Año</span>
-                        <span id="voteStatus3er">❌ 3er Año</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="groups-container">
-                <?php foreach ($grupos_organizados as $grupo_id => $grupo): ?>
-                <div class="group-section">
-                    <h3 class="group-title"><?= htmlspecialchars($grupo['nombre']) ?></h3>
-                    <div class="subgrupos-grid">
-                        <?php foreach ($grupo['subgrupos'] as $subgrupo): ?>
-                        <div class="subgrupo-card" data-id="<?= $subgrupo['id'] ?>" data-grupo="<?= $grupo_id ?>">
-                            <h4><?= htmlspecialchars($subgrupo['nombre']) ?></h4>
-                            <div class="vote-count" id="vote-count-<?= $subgrupo['id'] ?>"><?= $subgrupo['votos'] ?> votos</div>
-                            <button class="vote-button" onclick="votar(<?= $subgrupo['id'] ?>, <?= $grupo_id ?>)">
-                                Votar
-                            </button>
-                        </div>
+            </section>
+
+            <section class="card landing__block" aria-labelledby="modalidad">
+                <h2 class="card__title" id="modalidad">
+                    <svg class="icon" aria-hidden="true"><use href="#i-urna"></use></svg>
+                    Modalidad
+                </h2>
+                <ol class="steps">
+                    <li class="steps__item">Un voto para los proyectos de <strong>1.º año</strong>.</li>
+                    <li class="steps__item">Un voto para los proyectos de <strong>2.º año</strong>.</li>
+                    <li class="steps__item">Un voto para los proyectos de <strong>3.º año</strong>.</li>
+                </ol>
+                <p class="landing__note">
+                    <svg class="icon icon--sm" aria-hidden="true"><use href="#i-info"></use></svg>
+                    Son tres votos en total, uno por grupo. No se pueden repetir ni cambiar.
+                </p>
+            </section>
+
+            <?php if ($estado === 'finalizada' && $ganadores): ?>
+                <section class="card landing__block" aria-labelledby="ganadores">
+                    <h2 class="card__title" id="ganadores">
+                        <svg class="icon" aria-hidden="true"><use href="#i-trofeo"></use></svg>
+                        Proyectos destacados
+                    </h2>
+                    <ul class="winners">
+                        <?php foreach ($ganadores as $g): ?>
+                            <li class="winner">
+                                <svg class="icon winner__icon" aria-hidden="true"><use href="#i-trofeo"></use></svg>
+                                <span class="winner__group"><?= htmlspecialchars($g['grupo']) ?></span>
+                                <strong class="winner__project"><?= htmlspecialchars($g['nombre']) ?></strong>
+                                <span class="winner__votes">
+                                    <?= (int)$g['votos'] ?> <?= ((int)$g['votos'] === 1) ? 'voto' : 'votos' ?>
+                                </span>
+                            </li>
                         <?php endforeach; ?>
-                    </div>
-                </div>
-                <?php endforeach; ?>
-            </div>
-            
-            <div id="messageContainer"></div>
-        </div>
-        <?php endif; ?>
-        
-        <!-- Esta sección está oculta para usuarios normales -->
-        <!-- Solo el administrador puede ver los resultados en admin.php -->
-    </div>
-    
-    <footer class="main-footer">
-        <p>Desarrollado por Alumnos de 2do de Sistemas - ISFT N° 177</p>
-    </footer>
+                    </ul>
+                </section>
+            <?php endif; ?>
 
-    <script src="js/index.js"></script>
-    <?php if (!$votacion_abierta && $tiempo_restante): ?>
-    <script>
-        // Convertir el tiempo restante a total de segundos
-        let totalSeconds = <?= ($tiempo_restante['dias'] * 86400) + ($tiempo_restante['horas'] * 3600) + ($tiempo_restante['minutos'] * 60) + $tiempo_restante['segundos'] ?>;
-        
-        function updateCountdown() {
-            if (totalSeconds <= 0) {
-                // Recargar la página cuando termine el tiempo
-                window.location.reload();
-                return;
-            }
-            
-            const days = Math.floor(totalSeconds / 86400);
-            const hours = Math.floor((totalSeconds % 86400) / 3600);
-            const minutes = Math.floor((totalSeconds % 3600) / 60);
-            const seconds = totalSeconds % 60;
-            
-            document.getElementById('dias').textContent = days;
-            document.getElementById('horas').textContent = String(hours).padStart(2, '0');
-            document.getElementById('minutos').textContent = String(minutes).padStart(2, '0');
-            document.getElementById('segundos').textContent = String(seconds).padStart(2, '0');
-            
-            totalSeconds--;
-        }
-        
-        // Actualizar cada segundo
-        updateCountdown();
-        setInterval(updateCountdown, 1000);
-    </script>
-    <?php endif; ?>
+            <section class="card landing__block" aria-labelledby="como-participar">
+                <h2 class="card__title" id="como-participar">
+                    <svg class="icon" aria-hidden="true"><use href="#i-personas"></use></svg>
+                    Cómo participar
+                </h2>
+                <ol class="howto">
+                    <li class="howto__step">
+                        <svg class="icon icon--lg howto__icon" aria-hidden="true"><use href="#i-usuario-mas"></use></svg>
+                        <h3 class="howto__title">Creá tu cuenta</h3>
+                        <p class="howto__text">Registrate con tu nombre y tu correo.</p>
+                    </li>
+                    <li class="howto__step">
+                        <svg class="icon icon--lg howto__icon" aria-hidden="true"><use href="#i-enviar"></use></svg>
+                        <h3 class="howto__title">Activá la cuenta</h3>
+                        <p class="howto__text">Te enviamos un código de 4 dígitos por correo.</p>
+                    </li>
+                    <li class="howto__step">
+                        <svg class="icon icon--lg howto__icon" aria-hidden="true"><use href="#i-urna"></use></svg>
+                        <h3 class="howto__title">Votá</h3>
+                        <p class="howto__text">Elegí un proyecto por cada año.</p>
+                    </li>
+                </ol>
+            </section>
+
+        </div>
+    </main>
+
+    <?php include __DIR__ . '/includes/site-footer.php'; ?>
+</div>
+
+
+<?php include __DIR__ . '/includes/iconos.php'; ?>
 </body>
 </html>

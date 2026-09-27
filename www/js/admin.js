@@ -1,615 +1,524 @@
-// Función para mostrar mensajes
-function mostrarMensaje(mensaje, tipo = 'success') {
-    const messageContainer = document.getElementById('messageContainer');
-    messageContainer.innerHTML = `<div class="message ${tipo}">${mensaje}</div>`;
-    setTimeout(() => {
-        messageContainer.innerHTML = '';
-    }, 3000);
+/**
+ * Panel de administracion.
+ *
+ * ES module, sin `var`. Toda llamada a la API pasa por `api()`, que hace
+ * async/await con try/catch y devuelve { ok, data } sin lanzar nunca.
+ *
+ * Dos reglas que se respetan aca:
+ *  - Delegacion de eventos: los listeners viven en los contenedores, no en
+ *    cada fila. Las tablas se re-renderizan enteras y los handlers siguen.
+ *  - No se innerHTML para construir filas: se crean nodos. El contenido que
+ *    viene de la base (nombres de usuario, de proyecto) no se interpola
+ *    como HTML, asi que un nombre con "<script>" no puede ejecutarse.
+ */
+
+const ENDPOINT = 'api.php';
+
+const messages = document.querySelector('[data-messages]');
+
+/** Muestra un mensaje temporal. */
+function notify(text, kind = 'success') {
+  if (!messages) return;
+  messages.replaceChildren();
+  const p = document.createElement('p');
+  p.className = `message message--${kind}`;
+  p.textContent = text;
+  messages.append(p);
+  window.setTimeout(() => p.remove(), 4000);
 }
 
-// Función para cerrar sesión
-function cerrarSesion() {
-    // Redirigir directamente a logout.php que llevará a despedida.php
-    window.location.href = 'logout.php';
-}
+/** @returns {Promise<{ok: boolean, data: object}>} */
+async function api(action, fields = {}) {
+  const body = new URLSearchParams({ action, ...fields });
 
-// Función para ver la página de votos
-function verPaginaVotos() {
-    // Redirigir a la página de votos (index.php para administradores)
-    window.location.href = 'index.php';
-}
-
-// Función para cambiar entre pestañas de administración
-function cambiarTabAdmin(tab) {
-    document.querySelectorAll('.admin-tab').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.admin-tab-content').forEach(content => content.style.display = 'none');
-    
-    document.querySelector(`.admin-tab[onclick="cambiarTabAdmin('${tab}')"]`).classList.add('active');
-    document.getElementById(`${tab}Tab`).style.display = 'block';
-    
-    if (tab === 'usuarios') cargarUsuarios();
-    if (tab === 'subgrupos') cargarSubgrupos();
-    if (tab === 'ganadores') cargarGanadores();
-    if (tab === 'configuracion') cargarConfiguracion();
-}
-
-// Función para cargar usuarios
-function cargarUsuarios() {
-    fetch('api.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: 'action=obtener_usuarios'
-    })
-    .then(response => response.json())
-    .then(data => {
-        const usuariosList = document.getElementById('usuariosList');
-        usuariosList.innerHTML = '';
-        
-        if (data.success) {
-            if (data.usuarios.length === 0) {
-                usuariosList.innerHTML = '<p style="text-align: center; padding: 20px;">No hay usuarios registrados</p>';
-                return;
-            }
-            
-            // Crear tabla
-            const table = document.createElement('table');
-            table.className = 'usuarios-table';
-            
-            // Crear encabezado
-            const thead = document.createElement('thead');
-            thead.innerHTML = `
-                <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Email</th>
-                    <th>Votos</th>
-                    <th>Detalles de Votos</th>
-                    <th>Acciones</th>
-                </tr>
-            `;
-            table.appendChild(thead);
-            
-            // Crear cuerpo de la tabla
-            const tbody = document.createElement('tbody');
-            data.usuarios.forEach(usuario => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${usuario.id}</td>
-                    <td><strong>${usuario.nombre}</strong></td>
-                    <td>${usuario.email}</td>
-                    <td><span class="vote-count-badge">${usuario.total_votos}</span></td>
-                    <td class="vote-details">${usuario.votos_detalle || 'Sin votos'}</td>
-                    <td class="table-actions">
-                        <button class="admin-btn-small" onclick="resetearVotosUsuario(${usuario.id})" title="Resetear Votos">🔄</button>
-                        <button class="admin-btn-small delete-btn" onclick="eliminarUsuario(${usuario.id})" title="Eliminar">🗑️</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-            table.appendChild(tbody);
-            usuariosList.appendChild(table);
-        } else {
-            usuariosList.innerHTML = '<p>Error al cargar usuarios</p>';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        usuariosList.innerHTML = '<p>Error al cargar usuarios</p>';
+  try {
+    const response = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
     });
+    const data = await response.json();
+
+    if (!response.ok || data.success === false) return { ok: false, data };
+    return { ok: true, data };
+  } catch (error) {
+    console.error(`[api] ${action}:`, error);
+    return { ok: false, data: { error: 'No pudimos comunicarnos con el servidor.' } };
+  }
 }
 
-// Función para cargar subgrupos
-function cargarSubgrupos() {
-    fetch('api.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: 'action=obtener_subgrupos_admin'
-    })
-    .then(response => response.json())
-    .then(data => {
-        const subgruposList = document.getElementById('subgruposList');
-        subgruposList.innerHTML = '';
-        
-        if (data.success) {
-            // Agrupar subgrupos por grupo
-            const grupos = {};
-            data.subgrupos.forEach(subgrupo => {
-                const grupoId = subgrupo.grupo_id;
-                if (!grupos[grupoId]) {
-                    grupos[grupoId] = {
-                        nombre: subgrupo.grupo_nombre,
-                        subgrupos: []
-                    };
-                }
-                grupos[grupoId].subgrupos.push(subgrupo);
-            });
-            
-            // Crear una sección para cada grupo
-            Object.keys(grupos).sort().forEach(grupoId => {
-                const grupo = grupos[grupoId];
-                
-                // Crear contenedor del grupo
-                const grupoContainer = document.createElement('div');
-                grupoContainer.className = 'grupo-admin-container';
-                
-                // Header del grupo
-                const grupoHeader = document.createElement('div');
-                grupoHeader.className = 'grupo-admin-header';
-                grupoHeader.innerHTML = `
-                    <h3>${grupo.nombre}</h3>
-                    <span class="grupo-count">${grupo.subgrupos.length} subgrupo(s)</span>
-                `;
-                grupoContainer.appendChild(grupoHeader);
-                
-                // Subgrupos del grupo
-                const subgruposGrid = document.createElement('div');
-                subgruposGrid.className = 'subgrupos-admin-grid';
-                
-                grupo.subgrupos.forEach(subgrupo => {
-                    const subgrupoDiv = document.createElement('div');
-                    subgrupoDiv.className = 'subgrupo-admin-card';
-                    subgrupoDiv.innerHTML = `
-                        <div class="subgrupo-admin-info">
-                            <h4>${subgrupo.nombre}</h4>
-                            <div class="subgrupo-admin-stats">
-                                <span class="vote-badge">${subgrupo.total_votos} votos</span>
-                            </div>
-                        </div>
-                        <div class="subgrupo-admin-actions">
-                            <button class="admin-btn-small" onclick="editarSubgrupo(${subgrupo.id}, '${subgrupo.nombre}')" title="Editar">✏️</button>
-                            <button class="admin-btn-small delete-btn" onclick="eliminarSubgrupo(${subgrupo.id})" title="Eliminar">🗑️</button>
-                        </div>
-                    `;
-                    subgruposGrid.appendChild(subgrupoDiv);
-                });
-                
-                grupoContainer.appendChild(subgruposGrid);
-                subgruposList.appendChild(grupoContainer);
-            });
-        } else {
-            subgruposList.innerHTML = '<p>Error al cargar subgrupos</p>';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        subgruposList.innerHTML = '<p>Error al cargar subgrupos</p>';
-    });
+/* ----------------------------------------------------------------- helpers */
+
+/** Crea un elemento con clase, texto y atributos, en una sola llamada. */
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
 }
 
-// Función para mostrar el modal de agregar subgrupo
-function mostrarAgregarSubgrupo() {
-    document.getElementById('agregarSubgrupoModal').style.display = 'block';
+/** Reemplaza el contenido de un contenedor. */
+function render(container, ...nodes) {
+  if (!container) return;
+  container.replaceChildren(...nodes);
 }
 
-// Función para cerrar el modal de agregar subgrupo
-function cerrarAgregarSubgrupo() {
-    document.getElementById('agregarSubgrupoModal').style.display = 'none';
-    document.getElementById('agregarSubgrupoForm').reset();
+/* ------------------------------------------------------------------ tabs */
+
+const tabs = [...document.querySelectorAll('[data-tab]')];
+const panels = [...document.querySelectorAll('[data-panel]')];
+
+/**
+ * Muestra una pestana. `focus` se pasa en true cuando el cambio vino de las
+ * flechas del teclado, para que el foco acompanhe al tab activo.
+ */
+function selectTab(name, { focus = false } = {}) {
+  for (const tab of tabs) {
+    const active = tab.dataset.tab === name;
+    tab.setAttribute('aria-selected', String(active));
+    tab.tabIndex = active ? 0 : -1;
+    if (active && focus) tab.focus();
+  }
+
+  for (const panel of panels) {
+    panel.hidden = panel.dataset.panel !== name;
+  }
 }
 
-// Función para editar un subgrupo
-function editarSubgrupo(id, nombre) {
-    const nuevoNombre = prompt('Ingrese el nuevo nombre del subgrupo:', nombre);
-    if (nuevoNombre) {
-        fetch('api.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `action=actualizar_subgrupo&id=${id}&nombre=${encodeURIComponent(nuevoNombre)}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                mostrarMensaje(data.message);
-                cargarSubgrupos();
-            } else {
-                mostrarMensaje(data.error, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            mostrarMensaje('Error al actualizar subgrupo', 'error');
-        });
+// Cambia el ?tab= sin recargar, para que la URL quede compartible.
+function syncUrl(name) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('tab', name);
+  window.history.replaceState({}, '', url);
+}
+
+function onTabClick(event) {
+  const tab = event.target.closest('[data-tab]');
+  if (!tab) return;
+  selectTab(tab.dataset.tab);
+  syncUrl(tab.dataset.tab);
+  loadPanel(tab.dataset.tab);
+}
+
+function onTabKeydown(event) {
+  const tab = event.target.closest('[data-tab]');
+  if (!tab) return;
+
+  const index = tabs.indexOf(tab);
+  let next = null;
+
+  if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+  else if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+  else if (event.key === 'Home') next = 0;
+  else if (event.key === 'End') next = tabs.length - 1;
+  else return;
+
+  event.preventDefault();
+  selectTab(tabs[next].dataset.tab, { focus: true });
+}
+
+/* ---------------------------------------------------------------- usuarios */
+
+async function loadUsers() {
+  const container = document.querySelector('[data-users-list]');
+  render(container, el('p', 'panel__loading', 'Cargando usuarios…'));
+
+  const { ok, data } = await api('obtener_usuarios');
+
+  if (!ok) {
+    render(container, el('p', 'panel__error', data.error || 'No pudimos cargar los usuarios.'));
+    return;
+  }
+
+  if (data.usuarios.length === 0) {
+    render(container, el('p', 'panel__empty', 'No hay usuarios registrados.'));
+    return;
+  }
+
+  // DocumentFragment: una sola insercion en el DOM en vez de una por fila.
+  const fragment = document.createDocumentFragment();
+  const table = el('table', 'table');
+  table.append(buildHead(['ID', 'Usuario', 'Email', 'Votos', 'Detalle', 'Acciones']));
+
+  const tbody = el('tbody');
+  for (const user of data.usuarios) {
+    tbody.append(buildUserRow(user));
+  }
+  table.append(tbody);
+  fragment.append(table);
+  render(container, fragment);
+}
+
+function buildHead(columns) {
+  const thead = el('thead');
+  const tr = el('tr');
+  for (const column of columns) {
+    const th = el('th', null, column);
+    th.scope = 'col';
+    tr.append(th);
+  }
+  thead.append(tr);
+  return thead;
+}
+
+function buildUserRow(user) {
+  const tr = el('tr');
+
+  tr.append(el('td', 'table__num', String(user.id)));
+
+  const name = el('td');
+  name.append(el('strong', null, user.nombre));
+  tr.append(name);
+
+  tr.append(el('td', 'table__email', user.email));
+  tr.append(el('td', 'table__num', String(user.total_votos ?? 0)));
+  tr.append(el('td', 'table__detail', user.votos_detalle || 'Sin votos'));
+
+  // Las acciones viajan como data-attributes; el listener esta delegado.
+  const actions = el('td', 'table__actions');
+  actions.append(
+    iconButton('refresh', `resetear-votos:${user.id}`, `Resetear los votos de ${user.nombre}`),
+    iconButton('borrar', `eliminar-usuario:${user.id}`, `Eliminar a ${user.nombre}`, 'is-danger'),
+  );
+  tr.append(actions);
+
+  return tr;
+}
+
+/** Boton de icono: recibe el id del <symbol> del sprite, no un emoji. */
+function iconButton(icon, action, label, extra = '') {
+  const button = el('button', `icon-btn ${extra}`.trim());
+  button.type = 'button';
+  button.dataset.rowAction = action;
+  // El icono es decorativo; el nombre accesible va en aria-label.
+  button.setAttribute('aria-label', label);
+  button.title = label;
+  button.append(iconNode(icon));
+  return button;
+}
+
+/** Crea un <svg><use href="#i-..."></svg> apuntando al sprite. */
+function iconNode(name) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'icon');
+  svg.setAttribute('aria-hidden', 'true');
+  const use = document.createElementNS(NS, 'use');
+  use.setAttribute('href', `#i-${name}`);
+  svg.append(use);
+  return svg;
+}
+
+/* ----------------------------------------------------------------- grupos */
+
+async function loadGroups() {
+  const container = document.querySelector('[data-groups-list]');
+  render(container, el('p', 'panel__loading', 'Cargando grupos…'));
+
+  const { ok, data } = await api('obtener_subgrupos_admin');
+
+  if (!ok) {
+    render(container, el('p', 'panel__error', data.error || 'No pudimos cargar los grupos.'));
+    return;
+  }
+
+  if (data.subgrupos.length === 0) {
+    render(container, el('p', 'panel__empty', 'Todavía no hay proyectos cargados.'));
+    return;
+  }
+
+  // Agrupar por año en una sola pasada sobre un Map.
+  const byGroup = new Map();
+  for (const sub of data.subgrupos) {
+    if (!byGroup.has(sub.grupo_id)) {
+      byGroup.set(sub.grupo_id, { nombre: sub.grupo_nombre, items: [] });
     }
-}
+    byGroup.get(sub.grupo_id).items.push(sub);
+  }
 
-// Función para eliminar un subgrupo
-function eliminarSubgrupo(id) {
-    if (confirm('¿Estás seguro de que quieres eliminar este subgrupo?')) {
-        fetch('api.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `action=eliminar_subgrupo&id=${id}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                mostrarMensaje(data.message);
-                cargarSubgrupos();
-            } else {
-                mostrarMensaje(data.error, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            mostrarMensaje('Error al eliminar subgrupo', 'error');
-        });
+  const fragment = document.createDocumentFragment();
+
+  for (const group of [...byGroup.values()].sort((a, b) => a.nombre.localeCompare(b.nombre))) {
+    const section = el('section', 'groupbox');
+    section.append(el('h3', 'groupbox__title', group.nombre));
+
+    const list = el('ul', 'grouplist');
+
+    for (const sub of group.items) {
+      const item = el('li', 'groupitem');
+
+      const info = el('div', 'groupitem__info');
+      info.append(
+        el('strong', 'groupitem__name', sub.nombre),
+        el('span', 'groupitem__count', `${sub.total_votos} votos`),
+      );
+
+      const actions = el('div', 'groupitem__actions');
+      actions.append(
+        iconButton('editar', `editar-subgrupo:${sub.id}`, `Renombrar ${sub.nombre}`),
+        iconButton('borrar', `eliminar-subgrupo:${sub.id}`, `Eliminar ${sub.nombre}`, 'is-danger'),
+      );
+
+      item.append(info, actions);
+      list.append(item);
     }
+
+    section.append(list);
+    fragment.append(section);
+  }
+
+  render(container, fragment);
 }
 
-// Función para resetear votos de un usuario
-function resetearVotosUsuario(id) {
-    if (confirm('¿Estás seguro de que quieres resetear los votos de este usuario?')) {
-        fetch('api.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `action=resetear_votos_usuario&usuario_id=${id}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                mostrarMensaje(data.message);
-                cargarUsuarios();
-            } else {
-                mostrarMensaje(data.error, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            mostrarMensaje('Error al resetear votos', 'error');
-        });
+/* -------------------------------------------------------------- ganadores */
+
+async function loadWinners() {
+  const container = document.querySelector('[data-winners]');
+  render(container, el('p', 'panel__loading', 'Calculando ganadores…'));
+
+  const { ok, data } = await api('obtener_resultados');
+
+  if (!ok) {
+    render(container, el('p', 'panel__error', data.error || 'No pudimos calcular los ganadores.'));
+    return;
+  }
+
+  if (data.resultados.length === 0) {
+    render(container, el('p', 'panel__empty', 'Todavía no hay proyectos para comparar.'));
+    return;
+  }
+
+  // Mismo criterio que antes: maximo de votos, gana el primero en empate.
+  const byGroup = new Map();
+  for (const row of data.resultados) {
+    if (!byGroup.has(row.grupo_id)) {
+      byGroup.set(row.grupo_id, { nombre: row.grupo_nombre, rows: [] });
     }
+    byGroup.get(row.grupo_id).rows.push(row);
+  }
+
+  const fragment = document.createDocumentFragment();
+  const best = [];
+
+  for (const group of byGroup.values()) {
+    const max = Math.max(...group.rows.map((r) => Number(r.votos)));
+    const winner = group.rows.find((r) => Number(r.votos) === max);
+    if (winner) best.push(winner);
+
+    const box = el('article', 'winnerbox');
+    box.append(el('h3', 'winnerbox__group', group.nombre));
+    box.append(el('p', 'winnerbox__name', winner ? winner.nombre : 'Sin votos'));
+    box.append(el('p', 'winnerbox__count', winner ? `${winner.votos} votos` : '0 votos'));
+    fragment.append(box);
+  }
+
+  if (best.length > 0) {
+    const overall = el('article', 'winnerbox winnerbox--overall');
+    const top = Math.max(...best.map((r) => Number(r.votos)));
+    const champ = best.find((r) => Number(r.votos) === top);
+    overall.append(el('h3', 'winnerbox__group', 'Ganador general'));
+    overall.append(el('p', 'winnerbox__name', champ.nombre));
+    overall.append(el('p', 'winnerbox__count', `${champ.grupo_nombre} · ${champ.votos} votos`));
+    fragment.append(overall);
+  }
+
+  render(container, fragment);
 }
 
-// Función para eliminar un usuario
-function eliminarUsuario(id) {
-    if (confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
-        fetch('api.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `action=eliminar_usuario&usuario_id=${id}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                mostrarMensaje(data.message);
-                cargarUsuarios();
-            } else {
-                mostrarMensaje(data.error, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            mostrarMensaje('Error al eliminar usuario', 'error');
-        });
+/* ---------------------------------------------------------- configuracion */
+
+const toInputValue = (value) => (value ? String(value).slice(0, 16) : '');
+
+async function loadConfig() {
+  const container = document.querySelector('[data-config]');
+  render(container, el('p', 'panel__loading', 'Cargando configuración…'));
+
+  const { ok, data } = await api('obtener_configuracion');
+
+  if (!ok) {
+    render(container, el('p', 'panel__error', data.error || 'No pudimos cargar la configuración.'));
+    return;
+  }
+
+  const config = data.configuracion || {};
+  const form = el('form', 'configform');
+
+  const buildField = (id, label, value) => {
+    const wrap = el('div', 'field');
+    const lbl = el('label', 'field__label', label);
+    lbl.htmlFor = id;
+    const input = el('input', 'field__input');
+    input.type = 'datetime-local';
+    input.id = id;
+    input.value = toInputValue(value);
+    input.required = true;
+    wrap.append(lbl, input);
+    return { wrap, input };
+  };
+
+  const start = buildField('inicio_votacion', 'Inicio', config.inicio_votacion);
+  const end = buildField('fin_votacion', 'Fin', config.fin_votacion);
+
+  const submit = el('button', 'btn btn--primary', 'Guardar configuración');
+  submit.type = 'button';
+  submit.dataset.action = 'save-config';
+
+  form.append(start.wrap, end.wrap, submit);
+  render(container, form);
+}
+
+async function saveConfig() {
+  const inicio = document.getElementById('inicio_votacion')?.value;
+  const fin = document.getElementById('fin_votacion')?.value;
+
+  if (!inicio || !fin) {
+    notify('Completá las dos fechas.', 'error');
+    return;
+  }
+  if (inicio >= fin) {
+    notify('La fecha de fin tiene que ser posterior a la de inicio.', 'error');
+    return;
+  }
+
+  const { ok, data } = await api('guardar_configuracion', {
+    inicio_votacion: inicio,
+    fin_votacion: fin,
+  });
+
+  if (!ok) {
+    notify(data.error || 'No pudimos guardar la configuración.', 'error');
+    return;
+  }
+  notify(data.message || 'Configuración guardada.');
+  loadConfig();
+}
+
+/* ---------------------------------------------------------------- acciones */
+
+const dialog = document.querySelector('[data-dialog]');
+
+/** Delegacion: un listener para todas las acciones declarativas. */
+async function onActionClick(event) {
+  const trigger = event.target.closest('[data-action], [data-row-action]');
+  if (!trigger) return;
+
+  // Acciones de fila: "accion:id"
+  if (trigger.dataset.rowAction) {
+    await handleRowAction(trigger.dataset.rowAction);
+    return;
+  }
+
+  switch (trigger.dataset.action) {
+    case 'reload-users':      loadUsers(); break;
+    case 'reload-groups':     loadGroups(); break;
+    case 'reload-winners':    loadWinners(); break;
+    case 'reload-config':     loadConfig(); break;
+    case 'clean-orphans':     cleanOrphans(); break;
+    case 'reset-all':         resetAll(); break;
+    case 'open-add':          dialog?.showModal(); break;
+    case 'add-subgroup':      addSubgroup(); break;
+    case 'save-config':       saveConfig(); break;
+    default: break;
+  }
+}
+
+async function handleRowAction(token) {
+  const [action, id] = token.split(':');
+
+  switch (action) {
+    case 'resetear-votos-usuario': {
+      if (!window.confirm(`¿Resetear los votos de este usuario?`)) return;
+      const { ok, data } = await api('resetear_votos_usuario', { usuario_id: id });
+      notify(data.message || data.error, ok ? 'success' : 'error');
+      if (ok) loadUsers();
+      break;
     }
-}
-
-// Función para limpiar votos huérfanos
-function limpiarVotosHuerfanos() {
-    if (confirm('¿Estás seguro de que quieres limpiar los votos huérfanos?')) {
-        fetch('api.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'action=limpiar_votos_huerfanos'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                mostrarMensaje(data.message);
-                cargarUsuarios();
-            } else {
-                mostrarMensaje(data.error, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            mostrarMensaje('Error al limpiar votos huérfanos', 'error');
-        });
+    case 'eliminar-usuario': {
+      if (!window.confirm('¿Eliminar este usuario y todos sus votos?')) return;
+      const { ok, data } = await api('eliminar_usuario', { usuario_id: id });
+      notify(data.message || data.error, ok ? 'success' : 'error');
+      if (ok) loadUsers();
+      break;
     }
-}
-
-// Función para resetear todos los votos
-function resetearTodosLosVotos() {
-    if (confirm('¿Estás seguro de que quieres resetear TODOS los votos?')) {
-        fetch('api.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'action=resetear_todos_los_votos'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                mostrarMensaje(data.message);
-                cargarUsuarios();
-                cargarSubgrupos();
-            } else {
-                mostrarMensaje(data.error, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            mostrarMensaje('Error al resetear todos los votos', 'error');
-        });
+    case 'editar-subgrupo': {
+      const input = window.prompt('Nuevo nombre del proyecto:');
+      if (!input) return;
+      const { ok, data } = await api('actualizar_subgrupo', { id, nombre: input });
+      notify(data.message || data.error, ok ? 'success' : 'error');
+      if (ok) loadGroups();
+      break;
     }
+    case 'eliminar-subgrupo': {
+      if (!window.confirm('¿Eliminar este proyecto y los votos que recibió?')) return;
+      const { ok, data } = await api('eliminar_subgrupo', { id });
+      notify(data.message || data.error, ok ? 'success' : 'error');
+      if (ok) loadGroups();
+      break;
+    }
+    default: break;
+  }
 }
 
-// Manejar el formulario de agregar subgrupo
-document.getElementById('agregarSubgrupoForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    const grupoId = formData.get('grupo_id');
-    const nombre = formData.get('nombre');
-    
-    fetch('api.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `action=agregar_subgrupo&grupo_id=${grupoId}&nombre=${encodeURIComponent(nombre)}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            mostrarMensaje(data.message);
-            cerrarAgregarSubgrupo();
-            cargarSubgrupos();
-        } else {
-            mostrarMensaje(data.error, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        mostrarMensaje('Error al agregar subgrupo', 'error');
-    });
+async function addSubgroup() {
+  const groupId = document.getElementById('grupo_id')?.value;
+  const name = document.getElementById('nombre')?.value.trim();
+
+  if (!groupId || !name) {
+    notify('Completá el año y el nombre.', 'error');
+    return;
+  }
+
+  const { ok, data } = await api('agregar_subgrupo', { grupo_id: groupId, nombre: name });
+
+  if (!ok) {
+    notify(data.error || 'No pudimos agregar el proyecto.', 'error');
+    return;
+  }
+
+  notify(data.message || 'Proyecto agregado.');
+  dialog?.close();
+  document.getElementById('nombre').value = '';
+  loadGroups();
+}
+
+async function cleanOrphans() {
+  if (!window.confirm('¿Revisar y borrar votos huérfanos?')) return;
+  const { ok, data } = await api('limpiar_votos_huerfanos');
+  notify(data.message || data.error, ok ? 'success' : 'error');
+  if (ok) loadUsers();
+}
+
+async function resetAll() {
+  if (!window.confirm('Esto borra TODOS los votos de todos los usuarios. ¿Seguís?')) return;
+  const { ok, data } = await api('resetear_todos_los_votos');
+  notify(data.message || data.error, ok ? 'success' : 'error');
+  if (ok) {
+    loadUsers();
+    loadGroups();
+  }
+}
+
+/* ------------------------------------------------------------------ arranque */
+
+function loadPanel(name) {
+  if (name === 'usuarios') loadUsers();
+  else if (name === 'subgrupos') loadGroups();
+  else if (name === 'ganadores') loadWinners();
+  else if (name === 'configuracion') loadConfig();
+}
+
+document.addEventListener('click', (event) => {
+  onTabClick(event);
+  onActionClick(event);
 });
 
-// Función para cargar ganadores
-function cargarGanadores() {
-    fetch('api.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: 'action=obtener_resultados'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            mostrarGanadoresPorAño(data.resultados);
-            mostrarGanadorGeneral(data.resultados);
-            mostrarResultadosDetallados(data.resultados);
-        } else {
-            mostrarMensaje('Error al cargar ganadores', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        mostrarMensaje('Error al cargar ganadores', 'error');
-    });
-}
+document.addEventListener('keydown', onTabKeydown);
 
-// Función para mostrar ganadores por año
-function mostrarGanadoresPorAño(resultados) {
-    const winnersByYear = document.getElementById('winnersByYear');
-    winnersByYear.innerHTML = '';
-    
-    const grupos = {};
-    resultados.forEach(resultado => {
-        if (!grupos[resultado.grupo_id]) {
-            grupos[resultado.grupo_id] = {
-                nombre: resultado.grupo_nombre,
-                subgrupos: []
-            };
-        }
-        grupos[resultado.grupo_id].subgrupos.push(resultado);
-    });
-    
-    Object.values(grupos).forEach(grupo => {
-        const maxVotos = Math.max(...grupo.subgrupos.map(s => parseInt(s.votos)));
-        const ganador = grupo.subgrupos.find(s => parseInt(s.votos) === maxVotos);
-        
-        const winnerCard = document.createElement('div');
-        winnerCard.className = 'winner-card-admin';
-        winnerCard.innerHTML = `
-            <h5>${grupo.nombre}</h5>
-            <p class="winner-name">${ganador ? ganador.nombre : 'Sin votos'}</p>
-            <p class="winner-votes">${ganador ? ganador.votos : 0} votos</p>
-        `;
-        winnersByYear.appendChild(winnerCard);
-    });
-}
+// El ?tab= de la URL decide que se muestra al entrar.
+const inicial = tabs.find((t) => t.getAttribute('aria-selected') === 'true')?.dataset.tab
+  ?? tabs[0]?.dataset.tab;
 
-// Función para mostrar ganador general
-function mostrarGanadorGeneral(resultados) {
-    const overallWinnerAdmin = document.getElementById('overallWinnerAdmin');
-    const maxVotos = Math.max(...resultados.map(r => parseInt(r.votos)));
-    const ganador = resultados.find(r => parseInt(r.votos) === maxVotos);
-    
-    overallWinnerAdmin.innerHTML = `
-        <h5>${ganador ? ganador.nombre : 'Sin votos'}</h5>
-        <p>Grupo: ${ganador ? ganador.grupo_nombre : '-'}</p>
-        <p>Total de votos: ${ganador ? ganador.votos : 0}</p>
-    `;
+if (inicial) {
+  selectTab(inicial);
+  loadPanel(inicial);
 }
-
-// Función para mostrar resultados detallados
-function mostrarResultadosDetallados(resultados) {
-    const detailedResultsAdmin = document.getElementById('detailedResultsAdmin');
-    detailedResultsAdmin.innerHTML = '';
-    
-    const grupos = {};
-    resultados.forEach(resultado => {
-        if (!grupos[resultado.grupo_id]) {
-            grupos[resultado.grupo_id] = {
-                nombre: resultado.grupo_nombre,
-                subgrupos: []
-            };
-        }
-        grupos[resultado.grupo_id].subgrupos.push(resultado);
-    });
-    
-    Object.values(grupos).forEach(grupo => {
-        const grupoDiv = document.createElement('div');
-        grupoDiv.className = 'result-group-admin';
-        grupoDiv.innerHTML = `<h5>${grupo.nombre}</h5>`;
-        
-        const totalVotos = grupo.subgrupos.reduce((sum, s) => sum + parseInt(s.votos), 0);
-        
-        grupo.subgrupos.forEach(subgrupo => {
-            const porcentaje = totalVotos > 0
-                ? ((parseInt(subgrupo.votos) / totalVotos) * 100).toFixed(1)
-                : 0;
-                
-            const subgrupoDiv = document.createElement('div');
-            subgrupoDiv.className = 'result-item-admin';
-            subgrupoDiv.innerHTML = `
-                <span class="result-name">${subgrupo.nombre}</span>
-                <div class="progress-bar-admin">
-                    <div class="progress-admin" style="width: ${porcentaje}%"></div>
-                </div>
-                <span class="result-votes">${subgrupo.votos} votos (${porcentaje}%)</span>
-            `;
-            grupoDiv.appendChild(subgrupoDiv);
-        });
-        
-        detailedResultsAdmin.appendChild(grupoDiv);
-    });
-}
-
-// Función para cargar configuración
-function cargarConfiguracion() {
-    fetch('api.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: 'action=obtener_configuracion'
-    })
-    .then(response => response.json())
-    .then(data => {
-        const container = document.getElementById('configuracionContainer');
-        
-        if (data.success) {
-            const config = data.configuracion;
-            
-            // Obtener fecha/hora actual para establecer valores por defecto
-            const now = new Date();
-            const fechaNow = now.toISOString().slice(0, 16);
-            const fechaFin = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
-            
-            container.innerHTML = `
-                <div class="config-form">
-                    <div class="form-group-config">
-                        <label for="inicio_votacion">Fecha y Hora de Inicio:</label>
-                        <input type="datetime-local" id="inicio_votacion" value="${config.inicio_votacion ? config.inicio_votacion.slice(0, 16) : fechaNow}">
-                    </div>
-                    
-                    <div class="form-group-config">
-                        <label for="fin_votacion">Fecha y Hora de Fin:</label>
-                        <input type="datetime-local" id="fin_votacion" value="${config.fin_votacion ? config.fin_votacion.slice(0, 16) : fechaFin}">
-                    </div>
-                    
-                    <div class="form-group-config">
-                        <button class="submit-button-config" onclick="guardarConfiguracion()">💾 Guardar Configuración</button>
-                    </div>
-                    
-                    <div class="config-info">
-                        <h4>📅 Estado Actual:</h4>
-                        <p><strong>Inicio:</strong> ${config.inicio_votacion ? new Date(config.inicio_votacion).toLocaleString('es-AR') : 'No configurado'}</p>
-                        <p><strong>Fin:</strong> ${config.fin_votacion ? new Date(config.fin_votacion).toLocaleString('es-AR') : 'No configurado'}</p>
-                        <p><strong>Estado:</strong> <span id="estadoVotacion">Verificando...</span></p>
-                    </div>
-                </div>
-            `;
-            
-            // Verificar el estado actual de la votación
-            verificarEstadoVotacion(config);
-        } else {
-            container.innerHTML = '<p>Error al cargar la configuración</p>';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        document.getElementById('configuracionContainer').innerHTML = '<p>Error al cargar la configuración</p>';
-    });
-}
-
-// Función para verificar el estado actual de la votación
-function verificarEstadoVotacion(config) {
-    const estadoElement = document.getElementById('estadoVotacion');
-    const ahora = new Date();
-    const inicio = config.inicio_votacion ? new Date(config.inicio_votacion) : null;
-    const fin = config.fin_votacion ? new Date(config.fin_votacion) : null;
-    
-    if (!inicio || !fin) {
-        estadoElement.innerHTML = '<span style="color: #666;">No configurado</span>';
-        return;
-    }
-    
-    if (ahora < inicio) {
-        estadoElement.innerHTML = '<span style="color: #3498db;">⏳ Pendiente - La votación aún no ha comenzado</span>';
-    } else if (ahora >= inicio && ahora <= fin) {
-        estadoElement.innerHTML = '<span style="color: #27ae60;">✅ Activa - Los usuarios pueden votar</span>';
-    } else {
-        estadoElement.innerHTML = '<span style="color: #e74c3c;">❌ Finalizada - La votación ha terminado</span>';
-    }
-}
-
-// Función para guardar configuración
-function guardarConfiguracion() {
-    const inicio = document.getElementById('inicio_votacion').value;
-    const fin = document.getElementById('fin_votacion').value;
-    
-    if (!inicio || !fin) {
-        mostrarMensaje('Por favor completa todos los campos', 'error');
-        return;
-    }
-    
-    if (new Date(inicio) >= new Date(fin)) {
-        mostrarMensaje('La fecha de fin debe ser posterior a la fecha de inicio', 'error');
-        return;
-    }
-    
-    fetch('api.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `action=guardar_configuracion&inicio_votacion=${inicio}&fin_votacion=${fin}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            mostrarMensaje(data.message);
-            cargarConfiguracion();
-        } else {
-            mostrarMensaje(data.error, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        mostrarMensaje('Error al guardar la configuración', 'error');
-    });
-}
-
-// Inicialización
-document.addEventListener('DOMContentLoaded', () => {
-    cargarUsuarios();
-    cargarSubgrupos();
-});

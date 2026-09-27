@@ -2,189 +2,194 @@
 session_start();
 require_once 'conexion/conexion.php';
 
-// Redirigir a index.php si no es administrador
-if (!isset($_SESSION['es_admin']) || $_SESSION['es_admin'] !== true) {
-    header('Location: index.php');
+if (empty($_SESSION['es_admin']) || $_SESSION['es_admin'] !== true) {
+    header('Location: votacion.php');
     exit;
 }
 
-// Obtener el parámetro de tab de la URL
-$tab_actual = isset($_GET['tab']) ? htmlspecialchars($_GET['tab']) : 'usuarios';
+// Las pestañas validas, para no dejar que ?tab= invente una.
+$tabs = [
+    'usuarios' => 'Usuarios',
+    'subgrupos' => 'Grupos',
+    'ganadores' => 'Ganadores',
+    'configuracion' => 'Configuración',
+];
+$tab_actual = isset($_GET['tab']) && isset($tabs[$_GET['tab']]) ? $_GET['tab'] : 'usuarios';
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Administración - ISFT 177</title>
-    <link rel="stylesheet" href="css/index.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Panel de administración | ISFT 177</title>
+        <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
+         preconnect evita el round-trip extra al pedir la hoja de estilos. -->
+    <?php include __DIR__ . '/includes/theme-inline.php'; ?>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Lato:wght@300;400;700&display=swap">
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/icons.css">
+    <link rel="stylesheet" href="css/theme-toggle.css">
+    <link rel="stylesheet" href="css/nav.css">
+    <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
-    <button class="logout-button" onclick="cerrarSesion()">Cerrar Sesión</button>
-    <div class="container">
-        <div class="header">
-            <h1>🔧 Panel de Administración - Sistema de Votación</h1>
-            <p>ISFT 177 - Instituto Superior de Formación Técnica</p>
-        </div>
+<div class="shell">
+    <a class="skip-link" href="#contenido">Ir al contenido</a>
 
-        <div id="adminPanel">
-            <div class="admin-header">
-                <h2>🔧 Panel de Administración</h2>
-                <div class="admin-actions">
-                    <button class="view-votes-button" onclick="verPaginaVotos()">📊 Ver Página de Votos</button>
-                    <button class="logout-button" onclick="cerrarSesion()">Cerrar Sesión</button>
+    <?php $nav_actual = 'admin'; include __DIR__ . '/includes/site-header.php'; ?>
+
+    <main class="shell__main" id="contenido">
+        <div class="wrap wrap--wide">
+            <h1 class="page__title">Administración</h1>
+
+            <!-- Tabs: aca si hace falta aria-* porque HTML nativo no tiene
+                 el patron tablist/tab/tabpanel ni la navegacion con flechas. -->
+            <div class="tabs">
+                <div class="tabs__list" role="tablist" aria-label="Secciones del panel">
+                    <?php foreach ($tabs as $clave => $etiqueta): ?>
+                        <button
+                            class="tabs__tab"
+                            type="button"
+                            role="tab"
+                            id="tab-<?= htmlspecialchars($clave) ?>"
+                            aria-controls="panel-<?= htmlspecialchars($clave) ?>"
+                            aria-selected="<?= $clave === $tab_actual ? 'true' : 'false' ?>"
+                            tabindex="<?= $clave === $tab_actual ? '0' : '-1' ?>"
+                            data-tab="<?= htmlspecialchars($clave) ?>">
+                            <?= htmlspecialchars($etiqueta) ?>
+                        </button>
+                    <?php endforeach; ?>
                 </div>
-            </div>
-            
-            <div class="admin-tabs">
-                <button class="admin-tab active" onclick="cambiarTabAdmin('usuarios')">👥 Usuarios</button>
-                <button class="admin-tab" onclick="cambiarTabAdmin('subgrupos')">📋 Grupos</button>
-                <button class="admin-tab" onclick="cambiarTabAdmin('ganadores')">🏆 Ganadores</button>
-                <button class="admin-tab" onclick="cambiarTabAdmin('configuracion')">⚙️ Configuración</button>
-            </div>
-            
-            <div id="usuariosTab" class="admin-tab-content">
-                <div class="admin-section">
-                    <h3>👥 Gestión de Usuarios</h3>
-                    <div class="admin-actions">
-                        <button class="admin-btn" onclick="cargarUsuarios()">🔄 Actualizar</button>
-                        <button class="admin-btn clean-btn" onclick="limpiarVotosHuerfanos()">🧹 Limpiar Huérfanos</button>
-                        <button class="admin-btn reset-all-btn" onclick="resetearTodosLosVotos()">🗑️ Resetear Todo</button>
-                    </div>
-                    <div id="usuariosList" class="admin-list">
-                        <div class="loading">Cargando usuarios...</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="subgruposTab" class="admin-tab-content" style="display: none;">
-                <div class="admin-section">
-                    <h3>📋 Gestión de Grupos</h3>
-                    <div class="admin-actions">
-                        <button class="admin-btn" onclick="mostrarAgregarSubgrupo()">➕ Agregar</button>
-                        <button class="admin-btn" onclick="cargarSubgrupos()">🔄 Actualizar</button>
-                    </div>
-                    <div id="subgruposList" class="admin-list">
-                        <div class="loading">Cargando subgrupos...</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="ganadoresTab" class="admin-tab-content" style="display: none;">
-                <div class="admin-section">
-                    <h3>🏆 Resultados de la Votación</h3>
-                    <div class="admin-actions">
-                        <button class="admin-btn" onclick="cargarGanadores()">🔄 Actualizar</button>
-                    </div>
-                    
-                    <div class="winners-section-admin">
-                        <h4>🏆 Ganadores por Año</h4>
-                        <div class="winners-grid-admin" id="winnersByYear">
-                            <div class="loading">Cargando ganadores...</div>
+
+                <!-- Usuarios -->
+                <section class="tabs__panel"
+                         role="tabpanel"
+                         id="panel-usuarios"
+                         aria-labelledby="tab-usuarios"
+                         data-panel="usuarios"
+                         <?= $tab_actual !== 'usuarios' ? 'hidden' : '' ?>>
+                    <div class="panel__head">
+                        <h2>Gestión de usuarios</h2>
+                        <div class="panel__actions">
+                            <button class="btn btn--secondary btn--sm" type="button" data-action="reload-users">
+                                Actualizar
+                            </button>
+                            <button class="btn btn--ghost btn--sm" type="button" data-action="clean-orphans">
+                                Limpiar huérfanos
+                            </button>
+                            <button class="btn btn--danger btn--sm" type="button" data-action="reset-all">
+                                Borrar todos los votos
+                            </button>
                         </div>
                     </div>
-                    
-                    <div class="overall-winner-section-admin">
-                        <h4>👑 Ganador General</h4>
-                        <div class="overall-winner-admin" id="overallWinnerAdmin">
-                            <div class="loading">Calculando ganador general...</div>
+                    <div data-users-list>
+                        <p class="panel__loading">Cargando usuarios…</p>
+                    </div>
+                </section>
+
+                <!-- Grupos -->
+                <section class="tabs__panel"
+                         role="tabpanel"
+                         id="panel-subgrupos"
+                         aria-labelledby="tab-subgrupos"
+                         data-panel="subgrupos"
+                         <?= $tab_actual !== 'subgrupos' ? 'hidden' : '' ?>>
+                    <div class="panel__head">
+                        <h2>Gestión de grupos</h2>
+                        <div class="panel__actions">
+                            <button class="btn btn--primary btn--sm" type="button" data-action="open-add">
+                                Agregar proyecto
+                            </button>
+                            <button class="btn btn--secondary btn--sm" type="button" data-action="reload-groups">
+                                Actualizar
+                            </button>
                         </div>
                     </div>
-                    
-                    <div class="detailed-results-admin">
-                        <h4>📊 Resultados Detallados</h4>
-                        <div class="results-grid-admin" id="detailedResultsAdmin">
-                            <div class="loading">Cargando resultados detallados...</div>
+                    <div data-groups-list>
+                        <p class="panel__loading">Cargando grupos…</p>
+                    </div>
+                </section>
+
+                <!-- Ganadores -->
+                <section class="tabs__panel"
+                         role="tabpanel"
+                         id="panel-ganadores"
+                         aria-labelledby="tab-ganadores"
+                         data-panel="ganadores"
+                         <?= $tab_actual !== 'ganadores' ? 'hidden' : '' ?>>
+                    <div class="panel__head">
+                        <h2>Resultados</h2>
+                        <div class="panel__actions">
+                            <button class="btn btn--secondary btn--sm" type="button" data-action="reload-winners">
+                                Actualizar
+                            </button>
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <div id="configuracionTab" class="admin-tab-content" style="display: none;">
-                <div class="admin-section">
-                    <h3>⚙️ Configuración del Horario de Votación</h3>
-                    <div class="admin-actions">
-                        <button class="admin-btn" onclick="cargarConfiguracion()">🔄 Actualizar</button>
+                    <div data-winners>
+                        <p class="panel__loading">Calculando ganadores…</p>
                     </div>
-                    
-                    <div id="configuracionContainer">
-                        <div class="loading">Cargando configuración...</div>
+                </section>
+
+                <!-- Configuracion -->
+                <section class="tabs__panel"
+                         role="tabpanel"
+                         id="panel-configuracion"
+                         aria-labelledby="tab-configuracion"
+                         data-panel="configuracion"
+                         <?= $tab_actual !== 'configuracion' ? 'hidden' : '' ?>>
+                    <div class="panel__head">
+                        <h2>Horario de votación</h2>
+                        <div class="panel__actions">
+                            <button class="btn btn--secondary btn--sm" type="button" data-action="reload-config">
+                                Actualizar
+                            </button>
+                        </div>
                     </div>
-                </div>
+                    <div data-config>
+                        <p class="panel__loading">Cargando configuración…</p>
+                    </div>
+                </section>
             </div>
+
+            <p class="messages" role="status" aria-live="polite" data-messages></p>
+        </div>
+    </main>
+
+    <?php include __DIR__ . '/includes/site-footer.php'; ?>
+</div>
+
+<!-- <dialog> nativo: modal, foco atrapado y Escape sin una linea de JS -->
+<dialog class="dialog" data-dialog>
+    <form method="dialog" class="dialog__form">
+        <h2 class="dialog__title">Agregar proyecto</h2>
+
+        <div class="field">
+            <label class="field__label" for="grupo_id">Año</label>
+            <select class="field__input" id="grupo_id" name="grupo_id" required>
+                <option value="1">1.º año</option>
+                <option value="2">2.º año</option>
+                <option value="3">3.º año</option>
+            </select>
         </div>
 
-        <div id="agregarSubgrupoModal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>➕ Agregar Subgrupo</h2>
-                    <button class="close-modal-btn" onclick="cerrarAgregarSubgrupo()">✕</button>
-                </div>
-                <form id="agregarSubgrupoForm">
-                    <div class="form-group">
-                        <label for="grupoSelect">Grupo:</label>
-                        <select id="grupoSelect" name="grupo_id" required>
-                            <option value="1">1er Año</option>
-                            <option value="2">2do Año</option>
-                            <option value="3">3er Año</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="subgrupoNombre">Nombre del Subgrupo:</label>
-                        <input type="text" id="subgrupoNombre" name="nombre" required>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="submit-button">Agregar</button>
-                        <button type="button" class="cancel-button" onclick="cerrarAgregarSubgrupo()">Cancelar</button>
-                    </div>
-                </form>
-            </div>
+        <div class="field">
+            <label class="field__label" for="nombre">Nombre del proyecto</label>
+            <input class="field__input" type="text" id="nombre" name="nombre" maxlength="150" required>
         </div>
 
-        <div id="messageContainer"></div>
-    </div>
-    
-    <footer class="main-footer">
-        <p>Desarrollado por Alumnos de 2do de Sistemas - ISFT N° 177</p>
-    </footer>
+        <div class="dialog__actions">
+            <button class="btn btn--secondary" type="submit" value="cancel">Cancelar</button>
+            <button class="btn btn--primary" type="button" data-action="add-subgroup">Agregar</button>
+        </div>
+    </form>
+</dialog>
 
-    <script src="js/admin.js"></script>
-    <script>
-        // Inicializar el tab basado en el parámetro de la URL
-        document.addEventListener('DOMContentLoaded', function() {
-            const tabActual = '<?php echo $tab_actual; ?>';
-            
-            // Remover 'active' de todos los tabs
-            document.querySelectorAll('.admin-tab').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Ocultar todos los contenidos de tabs
-            document.querySelectorAll('.admin-tab-content').forEach(content => {
-                content.style.display = 'none';
-            });
-            
-            // Activar el tab correspondiente
-            const tabButton = document.querySelector(`.admin-tab[onclick="cambiarTabAdmin('${tabActual}')"]`);
-            const tabContent = document.getElementById(`${tabActual}Tab`);
-            
-            if (tabButton && tabContent) {
-                tabButton.classList.add('active');
-                tabContent.style.display = 'block';
-                
-                // Cargar el contenido del tab según corresponda
-                if (tabActual === 'usuarios') {
-                    cargarUsuarios();
-                } else if (tabActual === 'subgrupos') {
-                    cargarSubgrupos();
-                } else if (tabActual === 'ganadores') {
-                    cargarGanadores();
-                } else if (tabActual === 'configuracion') {
-                    cargarConfiguracion();
-                }
-            }
-        });
-    </script>
+<script type="module" src="js/admin.js"></script>
+
+<?php include __DIR__ . '/includes/iconos.php'; ?>
 </body>
 </html>

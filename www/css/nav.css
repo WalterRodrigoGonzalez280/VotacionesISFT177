@@ -1,0 +1,234 @@
+/* ==========================================================================
+   nav.css - encabezado con navegacion y pie de pagina
+   ==========================================================================
+   Reemplaza al .topbar y al .foot sueltos. Mobile-first: en una columna con
+   la navegacion scrolleable en horizontal, y desde 48rem pasa a fila.
+   ========================================================================== */
+
+/* ==========================================================================
+   Encabezado
+   ========================================================================== */
+
+.sitebar {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 40;
+    background: var(--c-bg);
+    border-block-end: 1px solid var(--c-line);
+    /* Fondo semiopaco: al hacer scroll el contenido no se ve "a través". */
+    background: color-mix(in srgb, var(--c-bg) 92%, transparent);
+    backdrop-filter: blur(8px);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+    .sitebar { background: var(--c-bg); }
+}
+
+.sitebar__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-3);
+    padding-block: var(--s-3);
+}
+
+/* ---------- Marca ---------- */
+
+.sitebar__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    text-decoration: none;
+    color: inherit;
+    margin-inline-end: auto;
+    min-inline-size: 0;
+}
+
+.sitebar__logo {
+    inline-size: 2.5rem;
+    flex: none;
+}
+
+.sitebar__text { display: grid; min-inline-size: 0; }
+
+.sitebar__title {
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    color: var(--c-white);
+    line-height: var(--lh-tight);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sitebar__sub {
+    font-size: var(--fs-xs);
+    color: var(--c-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---------- Navegacion ---------- */
+
+.sitebar__nav { order: 3; inline-size: 100%; }
+
+.navlist {
+    display: flex;
+    gap: var(--s-1);
+    list-style: none;
+    padding: 0;
+    /* Con 4 secciones no hace falta; pero si se agregan mas, scrollea en vez
+       de romper el layout en pantallas angostas. */
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.navlist::-webkit-scrollbar { display: none; }
+
+.navlist__link {
+    display: block;
+    padding: 0.4em 0.8em;
+    border-radius: var(--r-pill);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    color: var(--c-muted);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color var(--t-fast), background var(--t-fast);
+}
+
+.navlist__link:hover {
+    color: var(--c-gold-text);
+    background: var(--c-gold-tint);
+}
+
+/* La seccion actual se marca con fondo, no solo con color: el color solo no
+   alcanza para quien no distingue el dorado del gris. */
+.navlist__link.is-current {
+    color: var(--c-on-gold);
+    background: var(--c-gold);
+}
+
+.navlist__link.is-current:hover { color: var(--c-on-gold); background: var(--c-gold-dark); }
+
+/* ---------- Lado derecho ---------- */
+
+.sitebar__aside {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    order: 2;
+}
+
+.sitebar__user {
+    font-size: var(--fs-sm);
+    color: var(--c-muted);
+    max-inline-size: 10ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-inline-start: var(--s-3);
+    border-inline-start: 1px solid var(--c-line);
+}
+
+/* ==========================================================================
+   Pie
+   ========================================================================== */
+
+.sitefoot {
+    border-block-start: 1px solid var(--c-line);
+    background: var(--c-surface-2);
+    padding-block: var(--s-6) var(--s-5);
+    margin-block-start: auto;
+}
+
+.sitefoot__inner {
+    display: grid;
+    gap: var(--s-5);
+    /* Grid: es un layout 2D de marca + tres columnas de enlaces. */
+    grid-template-columns: 1fr;
+}
+
+/* ---------- Marca ---------- */
+
+.sitefoot__brand { display: grid; gap: var(--s-2); align-content: start; }
+
+.sitefoot__logo { inline-size: 3rem; }
+
+.sitefoot__name {
+    font-family: var(--font-display);
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    color: var(--c-gold-text);
+    line-height: var(--lh-tight);
+}
+
+.sitefoot__tagline { font-size: var(--fs-sm); color: var(--c-muted); }
+
+/* ---------- Columnas de enlaces ---------- */
+
+.sitefoot__group { display: grid; gap: var(--s-2); align-content: start; }
+
+.sitefoot__title {
+    font-family: var(--font-sans);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    color: var(--c-gold-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding-block-end: var(--s-2);
+    border-block-end: 1px solid var(--c-line);
+}
+
+.sitefoot__links { list-style: none; padding: 0; display: grid; gap: var(--s-2); }
+
+.sitefoot__link {
+    font-size: var(--fs-sm);
+    color: var(--c-muted);
+    text-decoration: none;
+    transition: color var(--t-fast);
+}
+
+.sitefoot__link:hover { color: var(--c-gold-text); text-decoration: underline; }
+
+.sitefoot__links--static { color: var(--c-muted); font-size: var(--fs-sm); }
+
+.sitefoot__legal {
+    margin-block-start: var(--s-5);
+    padding-block-start: var(--s-4);
+    border-block-start: 1px solid var(--c-line);
+    text-align: center;
+    font-size: var(--fs-xs);
+    color: var(--c-muted);
+}
+
+/* ---------- Responsive, mobile-first ---------- */
+
+@media (min-width: 34rem) {
+    .sitefoot__inner { grid-template-columns: repeat(2, 1fr); }
+    .sitefoot__brand { grid-column: 1 / -1; }
+}
+
+@media (min-width: 48rem) {
+    /* El nav pasa a la fila principal y deja de ocupar una linea propia. */
+    .sitebar__inner { flex-wrap: nowrap; gap: var(--s-4); }
+    .sitebar__nav { order: 2; inline-size: auto; }
+    .sitebar__aside { order: 3; }
+    .sitebar__brand { margin-inline-end: 0; }
+
+    .sitefoot__inner { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+    .sitefoot__brand { grid-column: auto; }
+    .sitefoot__brand { padding-inline-end: var(--s-4); }
+}
+
+@media (min-width: 64rem) {
+    .sitebar__inner { padding-block: var(--s-4); }
+    .sitebar__logo { inline-size: 2.75rem; }
+}
+
+/* En el header ya no hace falta el boton flotando: queda solo en las paginas
+   de autenticacion, que no tienen encabezado. */
+@media (min-width: 48rem) {
+    .sitebar .theme-toggle__btn { /* mismo tamaño que el flotante */ }
+}

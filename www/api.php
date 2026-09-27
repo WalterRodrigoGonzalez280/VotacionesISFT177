@@ -203,15 +203,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
 
         try {
+            // Columnas explicitas, NUNCA `u.*`: con el asterisco la respuesta
+            // JSON arrastraba `password` (hash bcrypt) y `token` a cualquier
+            // cliente que llame a esta accion.
             $stmt = $pdo->prepare("
-                SELECT u.*, 
+                SELECT u.id,
+                       u.nombre,
+                       u.email,
+                       u.activo,
+                       u.rol_id,
+                       u.es_admin,
+                       u.`votos_1er_año` AS votos_1er_ano,
+                       u.`votos_2do_año` AS votos_2do_ano,
+                       u.`votos_3er_año` AS votos_3er_ano,
+                       u.fecha_registro,
                        COUNT(v.id) as total_votos,
                        GROUP_CONCAT(CONCAT(s.nombre, ' (', g.nombre, ')') SEPARATOR ', ') as votos_detalle
                 FROM usuarios u
                 LEFT JOIN votos v ON u.id = v.usuario_id
                 LEFT JOIN subgrupos s ON v.subgrupo_id = s.id
                 LEFT JOIN grupos g ON s.grupo_id = g.id
-                GROUP BY u.id
+                GROUP BY u.id, u.nombre, u.email, u.activo, u.rol_id, u.es_admin,
+                         u.`votos_1er_año`, u.`votos_2do_año`, u.`votos_3er_año`, u.fecha_registro
                 ORDER BY u.fecha_registro DESC
             ");
             $stmt->execute();

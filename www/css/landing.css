@@ -1,0 +1,218 @@
+/* ==========================================================================
+   landing.css - solo el layout de la landing
+   ==========================================================================
+   Tokens, botones, tarjetas, insignias y alertas vienen de tokens.css y
+   components.css. Aca va lo propio de esta pagina.
+   ========================================================================== */
+
+.topbar--center {
+    flex-direction: column;
+    gap: var(--s-2);
+    text-align: center;
+    padding-block: var(--s-6);
+    border-block-end: 1px solid var(--c-line);
+    background:
+        radial-gradient(120% 100% at 50% 0%, var(--c-gold-wash) 0%, transparent 62%),
+        var(--c-bg);
+}
+
+.topbar--center .topbar__logo { inline-size: 4.5rem; }
+.topbar--center .topbar__name { font-size: var(--fs-base); }
+
+/* ---------- Hero ---------- */
+
+.landing {
+    display: grid;
+    gap: var(--s-4);
+    padding-block: var(--s-6) var(--s-7);
+}
+
+.hero {
+    text-align: center;
+    display: grid;
+    justify-items: center;
+    gap: var(--s-3);
+    padding-block: var(--s-6);
+}
+
+.hero__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: 0.3em 1em;
+    border: 1px solid var(--c-line-strong);
+    border-radius: var(--r-pill);
+    background: var(--c-gold-tint);
+    color: var(--c-gold-soft);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.hero__title {
+    max-inline-size: 18ch;
+    font-size: var(--fs-2xl);
+}
+
+.hero__lead {
+    max-inline-size: 40ch;
+    color: var(--c-muted);
+    font-size: var(--fs-md);
+}
+
+.hero__state { display: grid; justify-items: center; gap: var(--s-2); }
+
+.hero__detail { font-size: var(--fs-sm); color: var(--c-muted); }
+
+.hero__range {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--s-1);
+    font-size: var(--fs-sm);
+    color: var(--c-muted);
+}
+
+.hero__range .icon { color: var(--c-gold-soft); }
+.hero__range time { white-space: nowrap; color: var(--c-white); }
+
+.hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-3);
+    justify-content: center;
+    margin-block-start: var(--s-3);
+}
+
+.hero__alert { margin-block-start: var(--s-3); text-align: start; }
+
+/* ---------- Bloques ---------- */
+
+.landing__block { display: grid; gap: var(--s-3); }
+
+.landing__block p { color: var(--c-muted); }
+
+.landing__note {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-2);
+    font-size: var(--fs-sm);
+    color: var(--c-muted);
+}
+
+.landing__note .icon { color: var(--c-gold-soft); margin-block-start: 0.15em; }
+
+/* ---------- Ganadores: la crema es la superficie de honor ---------- */
+
+.winners { list-style: none; padding: 0; display: grid; gap: var(--s-3); }
+
+.winner {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    /* Fondo crema con texto NEGRO: dorado sobre crema da 1,92:1 y no se lee. */
+    background: var(--c-cream);
+    border: 1px solid var(--c-gold);
+    border-inline-start-width: 4px;
+    border-radius: var(--r-sm);
+}
+
+.winner__icon {
+    grid-row: 1 / 4;
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+    /* sobre crema el dorado puro no llega: 1,92:1 */
+    color: var(--c-on-cream-muted);
+    stroke-width: 2.2;
+}
+
+.winner__group,
+.winner__project,
+.winner__votes { grid-column: 2; }
+
+.winner__group {
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--c-on-cream-muted);
+}
+
+.winner__project {
+    font-size: var(--fs-base);
+    font-weight: 700;
+    color: var(--c-on-cream);
+}
+
+.winner__votes { font-size: var(--fs-sm); color: var(--c-on-cream-muted); }
+
+/* ---------- Como participar ---------- */
+
+.howto {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--s-3);
+    counter-reset: howto;
+}
+
+.howto__step {
+    display: grid;
+    justify-items: center;
+    align-content: start;
+    gap: var(--s-2);
+    padding: var(--s-5) var(--s-4);
+    text-align: center;
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--r-md);
+    counter-increment: howto;
+    transition: border-color var(--t-fast), transform var(--t-fast);
+}
+
+.howto__step:hover {
+    border-color: var(--c-line-strong);
+    transform: translateY(-3px);
+}
+
+.howto__icon {
+    display: grid;
+    place-items: center;
+    inline-size: 3.25rem;
+    block-size: 3.25rem;
+    padding: 0.75rem;
+    border-radius: 50%;
+    background: var(--c-gold);
+    color: var(--c-on-gold);
+    border: 1px solid var(--c-gold-dark);
+    box-shadow: var(--sh-2);
+}
+
+.howto__title { font-size: var(--fs-md); margin-block-end: var(--s-1); }
+
+.howto__text { font-size: var(--fs-sm); color: var(--c-muted); }
+
+/* ---------- Responsive, mobile-first ---------- */
+
+@media (min-width: 48rem) {
+    .landing { gap: var(--s-5); }
+    .hero { padding-block: var(--s-7); }
+    .howto { grid-template-columns: repeat(3, 1fr); }
+    .topbar--center .topbar__logo { inline-size: 5.5rem; }
+}
+
+@media (min-width: 64rem) {
+    .landing { padding-block: var(--s-7) var(--s-8); }
+    .winner {
+        grid-template-columns: auto 8rem 1fr auto;
+        gap: var(--s-4);
+    }
+    .winner__group,
+    .winner__project,
+    .winner__votes { grid-column: auto; }
+    .winner__icon { grid-row: auto; }
+}

@@ -2,13 +2,19 @@ services:
   db:
     image: mysql:5.7
     restart: always
+    env_file:
+      - .env
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-    volumes: 
+    volumes:
       - ./dump/:/var/lib/mysql
+      # Corre solo la primera vez, cuando el datadir esta vacio.
+      # Es idempotente, pero MySQL no lo reejecuta si el volumen ya existe:
+      # para recargarlo a mano ver README.md.
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     container_name: db
     networks:
       - app-network
@@ -20,7 +26,7 @@ services:
       - .env
     depends_on:
       - db
-    volumes: 
+    volumes:
       - ./www/:/var/www/html
     ports:
       - ${PHP_PORT}:80
@@ -30,6 +36,8 @@ services:
   phpmyadmin:
     image: phpmyadmin:latest
     container_name: phpmyadmin_votacion
+    env_file:
+      - .env
     depends_on:
       - db
     restart: always

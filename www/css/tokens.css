@@ -1,0 +1,400 @@
+/* ==========================================================================
+   tokens.css - sistema de diseno del ISFT 177
+   ==========================================================================
+
+   TEMA CLARO Y OSCURO.
+
+   La paleta de marca no cambia: dorado #D4A73E, dorado oscuro #A67C2E, crema
+   #F5F0B5. Lo que cambia es sobre que superficie se aplican y que tono de
+   dorado se usa COMO TEXTO.
+
+   El dorado de marca NO sirve como texto sobre claro: da 2,10:1 sobre el
+   fondo hueso. En modo claro los titulares usan un dorado oscurecido
+   (#8A6622, 4,93:1). En modo oscuro el dorado puro da 8,70:1 sobre el negro,
+   asi que ahi si se usa tal cual.
+
+   El boton dorado mantiene el color puro en los dos temas, con texto negro:
+   8,70:1 en ambos casos.
+
+   COMO SE ELIGE EL TEMA
+     1. sin preferencia guardada -> el del sistema (prefers-color-scheme)
+     2. con preferencia guardada -> el que eligio la persona
+   Se implementa con [data-theme] en <html> mas el fallback de la media query.
+   El atributo lo escribe www/js/theme.js antes de pintar, para evitar el
+   destello de tema equivocado al cargar.
+
+   Mobile-first: el layout base es el de pantalla angosta, las media queries
+   usan min-width.
+   ========================================================================== */
+
+/* ==========================================================================
+   Tokens geometricos (independientes del tema)
+   ========================================================================== */
+
+:root {
+    --s-1: 0.25rem;
+    --s-2: 0.5rem;
+    --s-3: 0.75rem;
+    --s-4: 1rem;
+    --s-5: 1.5rem;
+    --s-6: 2rem;
+    --s-7: 3rem;
+    --s-8: 4rem;
+
+    --r-sm:   0.375rem;
+    --r-md:   0.75rem;
+    --r-lg:   1.25rem;
+    --r-pill: 62.4375rem;
+
+    --fs-xs:   0.75rem;
+    --fs-sm:   0.875rem;
+    --fs-base: 1rem;
+    --fs-md:   clamp(1.05rem, 0.99rem + 0.3vw, 1.15rem);
+    --fs-lg:   clamp(1.2rem, 1.1rem + 0.5vw, 1.4rem);
+    --fs-xl:   clamp(1.45rem, 1.25rem + 1vw, 1.9rem);
+    --fs-2xl:  clamp(2rem, 1.4rem + 3vw, 3.2rem);
+    --lh-tight: 1.15;
+    --lh-body:  1.65;
+
+    --t-fast: 140ms ease;
+    --wrap: 68rem;
+    --wrap-narrow: 26rem;
+}
+
+/* ==========================================================================
+   TEMA CLARO (por defecto)
+   ========================================================================== */
+
+:root,
+:root[data-theme='light'] {
+    color-scheme: light;
+
+    /* Marca: el dorado puro se reserva para superficies (botones). */
+    --c-gold:      #d4a73e;   /* botones, bordes, iconos sobre oscuro */
+    --c-gold-text: #8a6622;   /* dorado como TEXTO: 4,93:1 sobre el fondo */
+    --c-gold-dark: #a67c2e;   /* hover de botones */
+    --c-gold-soft: #86621c;   /* en claro tiene que ser legible: 4,79:1 en la
+                                     superficie hundida, que es la mas exigente */
+    --c-gold-hover: #7c5b1c;  /* hover de enlace: 5,86:1 */
+
+    /* Superficies */
+    --c-bg:        #faf8f0;   /* hueso */
+    --c-surface:   #ffffff;
+    --c-surface-2: #f2eee1;   /* hundido: inputs, cabeceras */
+    --c-surface-3: #e9e3d0;   /* hover sobre superficie */
+
+    /* Texto */
+    --c-white:     #1a1a1a;   /* sobre claro, "blanco" es el texto fuerte */
+    --c-muted:     #5c574d;   /* secundario: 6,75:1 sobre el fondo */
+
+    /* Bordes */
+    --c-line:        rgb(138 102 34 / 0.20);
+    --c-line-strong: rgb(138 102 34 / 0.42);
+    --c-line-gold:   #a67c2e;
+
+    /* Estados, sobre claro */
+    --c-ok:        #2f7d4f;
+    --c-ok-bg:     #e3efe6;
+    --c-ok-line:   #b7d8c2;
+    --c-ok-ink:    #1f5133;
+
+    --c-danger:      #b23a2e;
+    --c-danger-bg:   #f9e8e6;
+    --c-danger-line: #e8c0ba;
+    --c-danger-ink:  #8a2119;
+
+    --c-info:      #2f6f8f;
+    --c-info-bg:   #e4eef3;
+    --c-info-line: #bed8e3;
+    --c-info-ink:  #1e4a61;
+
+    --c-warn-bg:   #fbf3dd;
+    --c-warn-line: #e3cf9a;
+    --c-warn-ink:  #7c5b1c;
+
+    /* Veladuras: en claro el overlay tiene que ser oscuro para leerse */
+    --c-halo:        rgb(212 167 62 / 0.22);   /* aura dorada de fondo */
+    --c-gold-wash:   rgb(212 167 62 / 0.14);   /* lavado dorado suave */
+    --c-gold-tint:   rgb(212 167 62 / 0.10);   /* fondo de hover/badge */
+    --c-backdrop:    rgb(26 26 26 / 0.45);
+    --c-placeholder: #6f6a5e;
+    --c-on-gold:     #0d0d0d;   /* texto sobre dorado: 8,70:1 */
+
+    /* Texto sobre la superficie de honor (crema) */
+    --c-cream:      #f5f0b5;
+    --c-on-cream:   #1a1a1a;
+    --c-on-cream-muted: #5c5233;
+
+    /* Sombras: en claro la sombra si se ve, en oscuro casi no */
+    --sh-1: 0 1px 2px rgb(60 50 20 / 0.08);
+    --sh-2: 0 1px 3px rgb(60 50 20 / 0.09), 0 8px 24px rgb(60 50 20 / 0.06);
+    --sh-3: 0 4px 12px rgb(60 50 20 / 0.12), 0 16px 40px rgb(60 50 20 / 0.09);
+}
+
+/* ==========================================================================
+   TEMA OSCURO
+   ========================================================================== */
+
+:root[data-theme='dark'] {
+    color-scheme: dark;
+
+    --c-gold:      #d4a73e;
+    --c-gold-text: #d4a73e;   /* aca el puro si llega: 8,70:1 sobre negro */
+    --c-gold-dark: #a67c2e;
+    --c-gold-soft: #e8c97a;
+    --c-gold-hover: #e8c97a;  /* en oscuro el hover aclara */
+
+    --c-bg:        #0d0d0d;
+    --c-surface:   #2b2b2b;
+    --c-surface-2: #1a1a1a;
+    --c-surface-3: #3a3a3a;
+
+    --c-white:     #ffffff;
+    --c-muted:     #d9d9d9;   /* 17,36:1 sobre el fondo */
+
+    --c-line:        rgb(212 167 62 / 0.22);
+    --c-line-strong: rgb(212 167 62 / 0.45);
+    --c-line-gold:   var(--c-gold-dark);
+
+    --c-ok:        #4caf7d;
+    --c-ok-bg:     #14301f;
+    --c-ok-line:   #1f5236;
+    --c-ok-ink:    #7fd6a5;
+
+    --c-danger:      #e05a4a;
+    --c-danger-bg:   #2e1512;
+    --c-danger-line: #5c241d;
+    --c-danger-ink:  #f0938a;
+
+    --c-info:      #6aa9c9;
+    --c-info-bg:   #12242e;
+    --c-info-line: #1f4152;
+    --c-info-ink:  #9fd0e6;
+
+    --c-warn-bg:   #2c2410;
+    --c-warn-line: #5c4a1a;
+    --c-warn-ink:  #e8c97a;
+
+    --c-halo:        rgb(212 167 62 / 0.18);
+    --c-gold-wash:   rgb(212 167 62 / 0.16);
+    --c-gold-tint:   rgb(212 167 62 / 0.10);
+    --c-backdrop:    rgb(0 0 0 / 0.70);
+    --c-placeholder: #9a9a9a;
+    --c-on-gold:     #0d0d0d;
+
+    --c-cream:      #f5f0b5;
+    --c-on-cream:   #1a1a1a;
+    --c-on-cream-muted: #6b5a20;
+
+    --sh-1: 0 1px 2px rgb(0 0 0 / 0.40);
+    --sh-2: 0 2px 6px rgb(0 0 0 / 0.45);
+    --sh-3: 0 8px 28px rgb(0 0 0 / 0.55);
+}
+
+/* Si no hay preferencia guardada, se sigue al del sistema. El :not evita que
+   una eleccion explicita en claro se pise con la preferencia del sistema. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+        color-scheme: dark;
+
+        --c-gold-text: #d4a73e;
+        --c-gold-dark: #a67c2e;
+        --c-gold-soft: #e8c97a;
+        --c-gold-hover: #e8c97a;
+
+        --c-bg:        #0d0d0d;
+        --c-surface:   #2b2b2b;
+        --c-surface-2: #1a1a1a;
+        --c-surface-3: #3a3a3a;
+
+        --c-white:     #ffffff;
+        --c-muted:     #d9d9d9;
+
+        --c-line:        rgb(212 167 62 / 0.22);
+        --c-line-strong: rgb(212 167 62 / 0.45);
+        --c-line-gold:   #a67c2e;
+
+        --c-ok:        #4caf7d;
+        --c-ok-bg:     #14301f;
+        --c-ok-line:   #1f5236;
+        --c-ok-ink:    #7fd6a5;
+
+        --c-danger:      #e05a4a;
+        --c-danger-bg:   #2e1512;
+        --c-danger-line: #5c241d;
+        --c-danger-ink:  #f0938a;
+
+        --c-info:      #6aa9c9;
+        --c-info-bg:   #12242e;
+        --c-info-line: #1f4152;
+        --c-info-ink:  #9fd0e6;
+
+        --c-warn-bg:   #2c2410;
+        --c-warn-line: #5c4a1a;
+        --c-warn-ink:  #e8c97a;
+
+        --c-halo:        rgb(212 167 62 / 0.18);
+        --c-gold-wash:   rgb(212 167 62 / 0.16);
+        --c-gold-tint:   rgb(212 167 62 / 0.10);
+        --c-backdrop:    rgb(0 0 0 / 0.70);
+        --c-placeholder: #9a9a9a;
+        --c-on-gold:     #0d0d0d;
+
+        --c-cream:      #f5f0b5;
+        --c-on-cream:   #1a1a1a;
+        --c-on-cream-muted: #6b5a20;
+
+        --sh-1: 0 1px 2px rgb(0 0 0 / 0.40);
+        --sh-2: 0 2px 6px rgb(0 0 0 / 0.45);
+        --sh-3: 0 8px 28px rgb(0 0 0 / 0.55);
+    }
+}
+
+/* ==========================================================================
+   Tipografia
+   ==========================================================================
+   Cinzel reemplaza a la gótica UnifrakturMaguntia: es una capitular romana
+   ("Roman inscriptional"), o sea la misma que se ve tallada en inscripciones
+   y escudos, pero se LEE. Mantiene el tono heraldico sin el costo de
+   legibilidad. Se usa solo en titular grande.
+   ========================================================================== */
+
+:root {
+    --font-display: 'Cinzel', 'Lato', Georgia, serif;
+    --font-sans: 'Lato', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ==========================================================================
+   Reset
+   ========================================================================== */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+* { margin: 0; }
+
+html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+}
+
+body {
+    min-block-size: 100dvh;
+    background: var(--c-bg);
+    color: var(--c-muted);
+    font-family: var(--font-sans);
+    font-size: var(--fs-base);
+    font-weight: 400;
+    line-height: var(--lh-body);
+    -webkit-font-smoothing: antialiased;
+    transition: background var(--t-fast), color var(--t-fast);
+}
+
+h1,
+h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    /* --c-gold-text cambia segun el tema: puro en oscuro, oscurecido en claro */
+    color: var(--c-gold-text);
+    line-height: var(--lh-tight);
+    letter-spacing: 0.01em;
+}
+
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    color: var(--c-gold-text);
+    line-height: var(--lh-tight);
+}
+
+h1 { font-size: var(--fs-2xl); }
+h2 { font-size: var(--fs-xl); }
+h3 { font-size: var(--fs-lg); }
+
+strong,
+b { color: var(--c-white); font-weight: 700; }
+
+a { color: var(--c-gold-text); }
+a:hover { color: var(--c-gold-hover); }
+
+img,
+picture,
+svg { display: block; max-inline-size: 100%; }
+
+img { block-size: auto; }
+
+input,
+button,
+select,
+textarea { font: inherit; color: inherit; }
+
+button { cursor: pointer; }
+
+ul[class],
+ol[class] { list-style: none; padding: 0; }
+
+/* ==========================================================================
+   Accesibilidad
+   ========================================================================== */
+
+:focus-visible {
+    outline: 3px solid var(--c-gold-text);
+    outline-offset: 2px;
+    border-radius: var(--r-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
+        transition-duration: 0.01ms;
+        scroll-behavior: auto;
+    }
+}
+
+@media (prefers-contrast: more) {
+    :root {
+        --c-line: rgb(212 167 62 / 0.55);
+        --c-line-strong: rgb(212 167 62 / 0.8);
+    }
+    :root[data-theme='dark'] { --c-muted: #f2f2f2; }
+    :root[data-theme='light'] { --c-muted: #3a3730; }
+}
+
+.visually-hidden {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.skip-link {
+    position: absolute;
+    inset-block-start: var(--s-2);
+    inset-inline-start: var(--s-2);
+    z-index: 100;
+    padding: var(--s-2) var(--s-4);
+    background: var(--c-gold);
+    color: var(--c-on-gold);
+    border-radius: var(--r-sm);
+    text-decoration: none;
+    font-weight: 700;
+    transform: translateY(-200%);
+    transition: transform var(--t-fast);
+}
+
+.skip-link:focus-visible {
+    transform: translateY(0);
+    outline-color: var(--c-gold-text);
+}

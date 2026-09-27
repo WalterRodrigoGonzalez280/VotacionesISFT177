@@ -1,0 +1,50 @@
+/* ==========================================================================
+   theme-toggle.css - boton de tema claro / oscuro
+   ==========================================================================
+   Va flotante en la esquina, para poder incluirlo igual en las 9 paginas sin
+   tener que tocar el markup distinto de cada una. El orden de capas lo deja
+   por encima del contenido pero por debajo de .skip-link.
+   ========================================================================== */
+
+.theme-toggle {
+    position: fixed;
+    inset-block-start: var(--s-3);
+    inset-inline-end: var(--s-3);
+    z-index: 50;
+}
+
+.theme-toggle__btn {
+    display: grid;
+    place-items: center;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    padding: 0;
+    background: var(--c-surface);
+    color: var(--c-gold-text);
+    border: 1px solid var(--c-line-strong);
+    border-radius: 50%;
+    box-shadow: var(--sh-2);
+    transition: background var(--t-fast), border-color var(--t-fast),
+                transform var(--t-fast), color var(--t-fast);
+}
+
+.theme-toggle__btn:hover {
+    background: var(--c-surface-3);
+    border-color: var(--c-gold);
+    transform: scale(1.06);
+}
+
+.theme-toggle__btn .icon {
+    inline-size: 1.2rem;
+    block-size: 1.2rem;
+}
+
+/* En pantallas chicas se corre un poco para no tapar el logo. */
+@media (min-width: 40rem) {
+    .theme-toggle { inset-block-start: var(--s-4); inset-inline-end: var(--s-4); }
+}
+
+/* Impresion: siempre claro, y el boton no tiene sentido en papel. */
+@media print {
+    .theme-toggle { display: none; }
+}
