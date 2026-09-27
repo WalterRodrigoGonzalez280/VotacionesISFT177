@@ -7,11 +7,19 @@
  * del sistema y recien despues saltaria al elegido. Eso se ve como un
  * destello blanco en una pantalla oscura, y molesta.
  *
- * Son 6 lineas a proposito: es lo unico que se puede ejecutar de forma
+ * Son pocas lineas a proposito: es lo unico que se puede ejecutar de forma
  * sincrona antes del primer pintado.
+ *
+ * La clase `js` va por el mismo motivo que el tema, y por el mismo precio:
+ * el menu hamburguesa se dibuja SOLO con esta clase, asi que sin JS el nav
+ * queda visible y navegable en vez de quedar escondido detras de un boton
+ * que no hace nada (la leccion del bug 7, aplicada al reves). Como la clase
+ * se escribe antes del primer pintado, el menu tampoco produce un salto de
+ * layout al plegarse.
  */
 $script = <<<'JS'
 (function () {
+  document.documentElement.classList.add('js');
   try {
     var guardado = localStorage.getItem('isft177-tema');
     var sistema = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';

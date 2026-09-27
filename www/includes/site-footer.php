@@ -15,10 +15,11 @@ $anio = date('Y');
     <div class="sitefoot__inner wrap wrap--wide">
 
         <div class="sitefoot__brand">
-            <picture>
-                <source srcset="/Logo/logoisft177.webp" type="image/webp">
-                <img src="/Logo/logoisft177-480.png" alt="Logo del ISFT 177" class="sitefoot__logo">
-            </picture>
+            <?php /* 480 px como en el encabezado, por el mismo motivo: la
+                      version chica se veía borrosa. Ver el comentario del logo
+                      en site-header.php. */ ?>
+            <img src="/Logo/logoisft177-480.png" alt="Logo del ISFT 177"
+                 class="sitefoot__logo" width="480" height="480">
             <p class="sitefoot__name">Votación de Proyectos</p>
             <p class="sitefoot__tagline">
                 Exposición de proyectos de Prácticas Profesionalizantes.<br>

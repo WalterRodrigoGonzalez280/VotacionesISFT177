@@ -56,7 +56,7 @@ try {
 if ($logueado && !empty($_SESSION['usuario_id']) && !$es_admin) {
     try {
         $stmt = $pdo->prepare(
-            'SELECT votos_1er_año, votos_2do_año, votos_3er_año
+            'SELECT votos_1er_ano, votos_2do_ano, votos_3er_ano
                FROM usuarios
               WHERE id = ?'
         );
@@ -64,9 +64,9 @@ if ($logueado && !empty($_SESSION['usuario_id']) && !$es_admin) {
         $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($usuario
-            && $usuario['votos_1er_año'] == 1
-            && $usuario['votos_2do_año'] == 1
-            && $usuario['votos_3er_año'] == 1
+            && $usuario['votos_1er_ano'] == 1
+            && $usuario['votos_2do_ano'] == 1
+            && $usuario['votos_3er_ano'] == 1
         ) {
             header('Location: gracias.php');
             exit;
@@ -80,13 +80,13 @@ $grupos_organizados = [];
 
 try {
     $stmt = $pdo->prepare(
-        'SELECT s.id, s.nombre, s.grupo_id, g.nombre AS grupo_nombre, COUNT(v.id) AS votos
-           FROM subgrupos s
-           JOIN grupos g ON s.grupo_id = g.id
-           LEFT JOIN votos v ON s.id = v.subgrupo_id
+        'SELECT s.id, s.nombre, s.anio_id AS grupo_id, g.nombre AS grupo_nombre, COUNT(v.id) AS votos
+           FROM proyectos s
+           JOIN anios g ON s.anio_id = g.id
+           LEFT JOIN votos v ON s.id = v.proyecto_id
           WHERE s.activo = TRUE
-          GROUP BY s.id, s.nombre, s.grupo_id, g.nombre
-          ORDER BY s.grupo_id, s.id'
+          GROUP BY s.id, s.nombre, s.anio_id, g.nombre
+          ORDER BY s.anio_id, s.id'
     );
     $stmt->execute();
 
@@ -109,18 +109,12 @@ $nombre_usuario = $_SESSION['usuario_nombre'] ?? '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Votación | ISFT 177</title>
-        <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
-         preconnect evita el round-trip extra al pedir la hoja de estilos. -->
+    <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
+         Las tipografias van en un parcial, con la precarga de los .woff2 y la
+         hoja de @font-face: ver includes/fonts.php. -->
     <?php include __DIR__ . '/includes/theme-inline.php'; ?>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Lato:wght@300;400;700&display=swap">
-    <link rel="stylesheet" href="css/tokens.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/icons.css">
-    <link rel="stylesheet" href="css/theme-toggle.css">
-    <link rel="stylesheet" href="css/nav.css">
+    <?php include __DIR__ . '/includes/fonts.php'; ?>
+    <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/votacion.css">
 </head>
 <body>

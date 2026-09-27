@@ -137,6 +137,14 @@
         <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1 1-4 1-5-2-8-2-4 1-4 1Z"/>
         <path d="M4 22v-7"/>
     </symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24">
+        <path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>
+    </symbol>
+
+    <symbol id="i-cerrar" viewBox="0 0 24 24">
+        <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+    </symbol>
+
     <symbol id="i-sol" viewBox="0 0 24 24">
         <circle cx="12" cy="12" r="4"/>
         <path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/>

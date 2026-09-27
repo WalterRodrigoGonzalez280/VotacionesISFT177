@@ -207,15 +207,29 @@
 
 /* ---------- Configuracion ---------- */
 
+/* El ancho sale del campo, no al reves. Un input datetime-local mide ~265px de
+   min-content (los segmentos de fecha, la hora y el icono del calendario), asi
+   que a 30rem los dos campos no entraban: el grid se iba a 570px de contenido
+   dentro de una caja de 478 y los inputs se pasaban del borde derecho de la
+   tarjeta, tapando el borde y el padding.
+
+   38rem es lo que necesitan los dos campos uno al lado del otro: 265 + 265 +
+   16 de gap + 48 de padding, mas un par de px de aire para que el control no
+   tenga que comprimir sus segmentos. Si el viewport es mas angosto, el
+   `minmax(0, 1fr)` de abajo deja que encojan en vez de desbordar. */
 .configform {
     display: grid;
     gap: var(--s-4);
-    max-inline-size: 30rem;
+    max-inline-size: 38rem;
     padding: var(--s-5);
     background: var(--c-surface);
     border: 1px solid var(--c-line);
     border-radius: var(--r-md);
 }
+
+/* Sin esto el control no acepta medir menos que su ancho intrinseco, que es
+   justamente lo que lo hacia desbordar la grilla. */
+.configform .field__input { min-inline-size: 0; }
 
 
 /* ---------- Mensajes ---------- */
@@ -241,7 +255,10 @@
 @media (min-width: 48rem) {
     .winners { grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
     .grouplist { grid-template-columns: repeat(2, 1fr); }
-    .configform { grid-template-columns: 1fr 1fr; }
+    /* minmax(0, 1fr) y no 1fr: el minimo automatico de una pista `1fr` es el
+       min-content del campo, o sea el ancho del datetime-local, y eso es lo
+       que empujaba la tarjeta. Ver .configform. */
+    .configform { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .configform .btn { grid-column: 1 / -1; justify-self: start; }
 }
 

@@ -5,10 +5,11 @@
  * No exige sesion: es la puerta de entrada del sitio. Si el visitante ya
  * esta logueado, el boton principal lo manda a votacion.php o a admin.php.
  *
- * Decision de diseno: NO muestra los resultados parciales. Ver el conteo
- * mientras la votacion esta abierta sesga el voto de quien llega despues.
- * Los ganadores por grupo solo se revelan cuando la votacion termino, que es
- * lo mismo que hace el panel de administracion.
+ * Decision de diseno: la landing NO muestra los ganadores, ni al terminar.
+ * Ver el conteo mientras la votacion esta abierta sesga el voto de quien llega
+ * despues, y una vez terminada tampoco es de este lugar: el resultado es del
+ * panel de administracion, que es donde ya se calcula y se muestra (pestana
+ * "Ganadores"). Duplicarlo aca era una segunda fuente de la verdad.
  */
 session_start();
 require_once __DIR__ . '/conexion/conexion.php';
@@ -18,7 +19,6 @@ $logueado = !empty($_SESSION['logueado']) && $_SESSION['logueado'] === true;
 
 $estado = 'desconocido';
 $ventana = null;
-$ganadores = [];
 $error_bd = false;
 
 try {
@@ -46,33 +46,10 @@ try {
         }
     }
 
-    if ($estado === 'finalizada') {
-        $stmt = $pdo->prepare(
-            'SELECT s.grupo_id, g.nombre AS grupo_nombre, s.nombre AS subgrupo_nombre, COUNT(v.id) AS votos
-               FROM subgrupos s
-               JOIN grupos g ON s.grupo_id = g.id
-               LEFT JOIN votos v ON s.id = v.subgrupo_id
-              WHERE s.activo = TRUE
-              GROUP BY s.grupo_id, g.nombre, s.id, s.nombre
-              ORDER BY s.grupo_id, s.id'
-        );
-        $stmt->execute();
-
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $fila) {
-            $gid = (int)$fila['grupo_id'];
-            if (!isset($ganadores[$gid])) {
-                $ganadores[$gid] = [
-                    'grupo' => $fila['grupo_nombre'],
-                    'nombre' => $fila['subgrupo_nombre'],
-                    'votos' => 0,
-                ];
-            }
-            if ((int)$fila['votos'] > $ganadores[$gid]['votos']) {
-                $ganadores[$gid]['nombre'] = $fila['subgrupo_nombre'];
-                $ganadores[$gid]['votos'] = (int)$fila['votos'];
-            }
-        }
-    }
+    /* Los ganadores NO se consultan aca: la landing no los muestra. El calculo
+       queda solo en api.php (accion "calcular_ganadores"), que es la que usa la
+       pestana "Ganadores" del panel. Antes esta pagina arrastraba su propia
+       copia del calculo, que era una segunda fuente de la verdad. */
 } catch (PDOException $e) {
     error_log('Landing: ' . $e->getMessage());
     $error_bd = true;
@@ -118,18 +95,12 @@ $titulo = 'Exposición de Proyectos 2025';
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= htmlspecialchars($titulo) ?> | ISFT 177</title>
     <meta name="description" content="Exposición de proyectos del Técnico en Análisis de Sistemas del ISFT 177. Votación de proyectos por año.">
-        <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
-         preconnect evita el round-trip extra al pedir la hoja de estilos. -->
+    <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
+         Las tipografias van en un parcial, con la precarga de los .woff2 y la
+         hoja de @font-face: ver includes/fonts.php. -->
     <?php include __DIR__ . '/includes/theme-inline.php'; ?>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Lato:wght@300;400;700&display=swap">
-    <link rel="stylesheet" href="css/tokens.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/icons.css">
-    <link rel="stylesheet" href="css/theme-toggle.css">
-    <link rel="stylesheet" href="css/nav.css">
+    <?php include __DIR__ . '/includes/fonts.php'; ?>
+    <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/landing.css">
 </head>
 <body>
@@ -234,26 +205,9 @@ $titulo = 'Exposición de Proyectos 2025';
                 </p>
             </section>
 
-            <?php if ($estado === 'finalizada' && $ganadores): ?>
-                <section class="card landing__block" aria-labelledby="ganadores">
-                    <h2 class="card__title" id="ganadores">
-                        <svg class="icon" aria-hidden="true"><use href="#i-trofeo"></use></svg>
-                        Proyectos destacados
-                    </h2>
-                    <ul class="winners">
-                        <?php foreach ($ganadores as $g): ?>
-                            <li class="winner">
-                                <svg class="icon winner__icon" aria-hidden="true"><use href="#i-trofeo"></use></svg>
-                                <span class="winner__group"><?= htmlspecialchars($g['grupo']) ?></span>
-                                <strong class="winner__project"><?= htmlspecialchars($g['nombre']) ?></strong>
-                                <span class="winner__votes">
-                                    <?= (int)$g['votos'] ?> <?= ((int)$g['votos'] === 1) ? 'voto' : 'votos' ?>
-                                </span>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                </section>
-            <?php endif; ?>
+            <?php /* No va seccion de ganadores aca a proposito: el resultado es
+                      del panel de administracion. Ver el comentario de arriba
+                      del archivo y la pestana "Ganadores" de admin.php. */ ?>
 
             <section class="card landing__block" aria-labelledby="como-participar">
                 <h2 class="card__title" id="como-participar">

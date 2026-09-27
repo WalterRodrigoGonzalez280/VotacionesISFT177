@@ -149,7 +149,7 @@ async function confirmarVoto() {
 
 /* ------------------------------------------------------- estado del usuario */
 
-const VOTES = { 1: 'votos_1er_año', 2: 'votos_2do_año', 3: 'votos_3er_año' };
+const VOTES = { 1: 'votos_1er_ano', 2: 'votos_2do_ano', 3: 'votos_3er_ano' };
 
 /** Pinta los tres indicadores de "ya votaste" segun la respuesta del server. */
 function paintUserStatus(usuario) {

@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $usuario_id = (int)$_SESSION['usuario_id'];
 
         try {
-            $stmt = $pdo->prepare("SELECT nombre, email, votos_1er_año, votos_2do_año, votos_3er_año, es_admin FROM usuarios WHERE id = ?");
+            $stmt = $pdo->prepare("SELECT nombre, email, votos_1er_ano, votos_2do_ano, votos_3er_ano, es_admin FROM usuarios WHERE id = ?");
             $stmt->execute([$usuario_id]);
             $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $pdo->beginTransaction();
 
             // Verificar que el subgrupo existe y pertenece al grupo
-            $stmt = $pdo->prepare("SELECT id FROM subgrupos WHERE id = ? AND grupo_id = ? AND activo = TRUE");
+            $stmt = $pdo->prepare("SELECT id FROM proyectos WHERE id = ? AND anio_id = ? AND activo = TRUE");
             $stmt->execute([$subgrupo_id, $grupo_id]);
             if (!$stmt->fetch()) {
                 $pdo->rollBack();
@@ -104,9 +104,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             // Verificar si el usuario ya votó en este grupo
             $campos_voto = [
-                1 => 'votos_1er_año',
-                2 => 'votos_2do_año',
-                3 => 'votos_3er_año'
+                1 => 'votos_1er_ano',
+                2 => 'votos_2do_ano',
+                3 => 'votos_3er_ano'
             ];
             $campo_voto = $campos_voto[$grupo_id];
 
@@ -133,19 +133,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt->execute([$usuario_id]);
 
             // Registrar voto
-            $stmt = $pdo->prepare("INSERT INTO votos (usuario_id, subgrupo_id, grupo_id) VALUES (?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO votos (usuario_id, proyecto_id, anio_id) VALUES (?, ?, ?)");
             $stmt->execute([$usuario_id, $subgrupo_id, $grupo_id]);
 
             // Verificar si el usuario completó sus 3 votos
-            $stmt = $pdo->prepare("SELECT votos_1er_año, votos_2do_año, votos_3er_año FROM usuarios WHERE id = ?");
+            $stmt = $pdo->prepare("SELECT votos_1er_ano, votos_2do_ano, votos_3er_ano FROM usuarios WHERE id = ?");
             $stmt->execute([$usuario_id]);
             $usuario_actualizado = $stmt->fetch(PDO::FETCH_ASSOC);
             
             $votos_completos = false;
             if ($usuario_actualizado) {
-                $votos_completos = ($usuario_actualizado['votos_1er_año'] == 1 && 
-                                    $usuario_actualizado['votos_2do_año'] == 1 && 
-                                    $usuario_actualizado['votos_3er_año'] == 1);
+                $votos_completos = ($usuario_actualizado['votos_1er_ano'] == 1 && 
+                                    $usuario_actualizado['votos_2do_ano'] == 1 && 
+                                    $usuario_actualizado['votos_3er_ano'] == 1);
             }
 
             $pdo->commit();
@@ -169,16 +169,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         try {
             $stmt = $pdo->prepare("
-                SELECT s.id, s.nombre, s.grupo_id, g.nombre as grupo_nombre,
+                SELECT s.id, s.nombre, s.anio_id AS grupo_id, g.nombre as grupo_nombre,
                        COUNT(v.id) as votos,
                        CASE WHEN uv.id IS NOT NULL THEN 1 ELSE 0 END as usuario_voto
-                FROM subgrupos s 
-                JOIN grupos g ON s.grupo_id = g.id 
-                LEFT JOIN votos v ON s.id = v.subgrupo_id
-                LEFT JOIN votos uv ON s.id = uv.subgrupo_id AND uv.usuario_id = ?
+                FROM proyectos s 
+                JOIN anios g ON s.anio_id = g.id 
+                LEFT JOIN votos v ON s.id = v.proyecto_id
+                LEFT JOIN votos uv ON s.id = uv.proyecto_id AND uv.usuario_id = ?
                 WHERE s.activo = TRUE 
-                GROUP BY s.id, s.nombre, s.grupo_id, g.nombre, uv.id
-                ORDER BY s.grupo_id, s.id
+                GROUP BY s.id, s.nombre, s.anio_id, g.nombre, uv.id
+                ORDER BY s.anio_id, s.id
             ");
             $stmt->execute([$usuario_id]);
             $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -213,18 +213,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                        u.activo,
                        u.rol_id,
                        u.es_admin,
-                       u.`votos_1er_año` AS votos_1er_ano,
-                       u.`votos_2do_año` AS votos_2do_ano,
-                       u.`votos_3er_año` AS votos_3er_ano,
+                       u.`votos_1er_ano` AS votos_1er_ano,
+                       u.`votos_2do_ano` AS votos_2do_ano,
+                       u.`votos_3er_ano` AS votos_3er_ano,
                        u.fecha_registro,
                        COUNT(v.id) as total_votos,
                        GROUP_CONCAT(CONCAT(s.nombre, ' (', g.nombre, ')') SEPARATOR ', ') as votos_detalle
                 FROM usuarios u
                 LEFT JOIN votos v ON u.id = v.usuario_id
-                LEFT JOIN subgrupos s ON v.subgrupo_id = s.id
-                LEFT JOIN grupos g ON s.grupo_id = g.id
+                LEFT JOIN proyectos s ON v.proyecto_id = s.id
+                LEFT JOIN anios g ON s.anio_id = g.id
                 GROUP BY u.id, u.nombre, u.email, u.activo, u.rol_id, u.es_admin,
-                         u.`votos_1er_año`, u.`votos_2do_año`, u.`votos_3er_año`, u.fecha_registro
+                         u.`votos_1er_ano`, u.`votos_2do_ano`, u.`votos_3er_ano`, u.fecha_registro
                 ORDER BY u.fecha_registro DESC
             ");
             $stmt->execute();
@@ -252,26 +252,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         try {
             if ($grupo_id) {
                 $stmt = $pdo->prepare("
-                    SELECT s.*, g.nombre as grupo_nombre,
+                    SELECT s.id, s.nombre, s.activo, s.anio_id AS grupo_id,
+                             g.nombre as grupo_nombre,
                            COUNT(v.id) as total_votos
-                    FROM subgrupos s
-                    JOIN grupos g ON s.grupo_id = g.id
-                    LEFT JOIN votos v ON s.id = v.subgrupo_id
-                    WHERE s.activo = TRUE AND s.grupo_id = ?
+                    FROM proyectos s
+                    JOIN anios g ON s.anio_id = g.id
+                    LEFT JOIN votos v ON s.id = v.proyecto_id
+                    WHERE s.activo = TRUE AND s.anio_id = ?
                     GROUP BY s.id
                     ORDER BY s.id
                 ");
                 $stmt->execute([$grupo_id]);
             } else {
                 $stmt = $pdo->prepare("
-                    SELECT s.*, g.nombre as grupo_nombre,
+                    SELECT s.id, s.nombre, s.activo, s.anio_id AS grupo_id,
+                             g.nombre as grupo_nombre,
                            COUNT(v.id) as total_votos
-                    FROM subgrupos s
-                    JOIN grupos g ON s.grupo_id = g.id
-                    LEFT JOIN votos v ON s.id = v.subgrupo_id
+                    FROM proyectos s
+                    JOIN anios g ON s.anio_id = g.id
+                    LEFT JOIN votos v ON s.id = v.proyecto_id
                     WHERE s.activo = TRUE
                     GROUP BY s.id
-                    ORDER BY s.grupo_id, s.id
+                    ORDER BY s.anio_id, s.id
                 ");
                 $stmt->execute();
             }
@@ -311,7 +313,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
 
         try {
-            $stmt = $pdo->prepare("INSERT INTO subgrupos (grupo_id, nombre) VALUES (?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO proyectos (anio_id, nombre) VALUES (?, ?)");
             $stmt->execute([$grupo_id, $nombre]);
 
             echo json_encode(['success' => true, 'message' => 'Subgrupo agregado correctamente']);
@@ -341,7 +343,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
 
         try {
-            $stmt = $pdo->prepare("UPDATE subgrupos SET nombre = ? WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE proyectos SET nombre = ? WHERE id = ?");
             $stmt->execute([$nombre, $id]);
 
             echo json_encode(['success' => true, 'message' => 'Subgrupo actualizado correctamente']);
@@ -367,16 +369,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $pdo->beginTransaction();
 
             // Obtener votos a eliminar
-            $stmt = $pdo->prepare("SELECT v.usuario_id, v.grupo_id FROM votos v WHERE v.subgrupo_id = ?");
+            $stmt = $pdo->prepare("SELECT v.usuario_id, v.anio_id FROM votos v WHERE v.proyecto_id = ?");
             $stmt->execute([$id]);
             $votosEliminar = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Actualizar usuarios
             foreach ($votosEliminar as $voto) {
                 $campos_voto = [
-                    1 => 'votos_1er_año',
-                    2 => 'votos_2do_año',
-                    3 => 'votos_3er_año'
+                    1 => 'votos_1er_ano',
+                    2 => 'votos_2do_ano',
+                    3 => 'votos_3er_ano'
                 ];
                 $campo = $campos_voto[$voto['grupo_id']];
 
@@ -385,11 +387,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
 
             // Eliminar votos
-            $stmt = $pdo->prepare("DELETE FROM votos WHERE subgrupo_id = ?");
+            $stmt = $pdo->prepare("DELETE FROM votos WHERE proyecto_id = ?");
             $stmt->execute([$id]);
 
             // Marcar subgrupo como inactivo
-            $stmt = $pdo->prepare("UPDATE subgrupos SET activo = FALSE WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE proyectos SET activo = FALSE WHERE id = ?");
             $stmt->execute([$id]);
 
             $pdo->commit();
@@ -420,7 +422,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt = $pdo->prepare("DELETE FROM votos WHERE usuario_id = ?");
             $stmt->execute([$usuario_id]);
 
-            $stmt = $pdo->prepare("UPDATE usuarios SET votos_1er_año = 0, votos_2do_año = 0, votos_3er_año = 0 WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE usuarios SET votos_1er_ano = 0, votos_2do_ano = 0, votos_3er_ano = 0 WHERE id = ?");
             $stmt->execute([$usuario_id]);
 
             $pdo->commit();
@@ -478,7 +480,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt = $pdo->prepare("DELETE FROM votos");
             $stmt->execute();
 
-            $stmt = $pdo->prepare("UPDATE usuarios SET votos_1er_año = 0, votos_2do_año = 0, votos_3er_año = 0");
+            $stmt = $pdo->prepare("UPDATE usuarios SET votos_1er_ano = 0, votos_2do_ano = 0, votos_3er_ano = 0");
             $stmt->execute();
 
             $pdo->commit();

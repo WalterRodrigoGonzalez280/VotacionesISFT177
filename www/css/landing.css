@@ -104,51 +104,10 @@
 
 .landing__note .icon { color: var(--c-gold-soft); margin-block-start: 0.15em; }
 
-/* ---------- Ganadores: la crema es la superficie de honor ---------- */
-
-.winners { list-style: none; padding: 0; display: grid; gap: var(--s-3); }
-
-.winner {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    column-gap: var(--s-3);
-    padding: var(--s-3) var(--s-4);
-    /* Fondo crema con texto NEGRO: dorado sobre crema da 1,92:1 y no se lee. */
-    background: var(--c-cream);
-    border: 1px solid var(--c-gold);
-    border-inline-start-width: 4px;
-    border-radius: var(--r-sm);
-}
-
-.winner__icon {
-    grid-row: 1 / 4;
-    inline-size: 1.5rem;
-    block-size: 1.5rem;
-    /* sobre crema el dorado puro no llega: 1,92:1 */
-    color: var(--c-on-cream-muted);
-    stroke-width: 2.2;
-}
-
-.winner__group,
-.winner__project,
-.winner__votes { grid-column: 2; }
-
-.winner__group {
-    font-size: var(--fs-xs);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--c-on-cream-muted);
-}
-
-.winner__project {
-    font-size: var(--fs-base);
-    font-weight: 700;
-    color: var(--c-on-cream);
-}
-
-.winner__votes { font-size: var(--fs-sm); color: var(--c-on-cream-muted); }
+/* NO hay estilos de ganadores aca: la landing no los muestra, el resultado es
+   del panel de administracion (ver admin.css, que tiene su propia version con
+   las mismas clases .winners/.winner). Estas reglas se fueron con la seccion
+   que las usaba; si alguna vez vuelven, el lugar es admin.css. */
 
 /* ---------- Como participar ---------- */
 
@@ -207,12 +166,4 @@
 
 @media (min-width: 64rem) {
     .landing { padding-block: var(--s-7) var(--s-8); }
-    .winner {
-        grid-template-columns: auto 8rem 1fr auto;
-        gap: var(--s-4);
-    }
-    .winner__group,
-    .winner__project,
-    .winner__votes { grid-column: auto; }
-    .winner__icon { grid-row: auto; }
 }

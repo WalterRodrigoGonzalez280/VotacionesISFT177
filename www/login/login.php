@@ -53,18 +53,12 @@ $titulo = 'Iniciar sesión';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= htmlspecialchars($titulo) ?> | ISFT 177</title>
-        <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
-         preconnect evita el round-trip extra al pedir la hoja de estilos. -->
+    <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
+         Las tipografias van en un parcial, con la precarga de los .woff2 y la
+         hoja de @font-face: ver includes/fonts.php. -->
     <?php include __DIR__ . '/../includes/theme-inline.php'; ?>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Lato:wght@300;400;700&display=swap">
-    <link rel="stylesheet" href="../css/tokens.css">
-    <link rel="stylesheet" href="../css/components.css">
-    <link rel="stylesheet" href="../css/icons.css">
-    <link rel="stylesheet" href="../css/theme-toggle.css">
-    <link rel="stylesheet" href="../css/nav.css">
+    <?php include __DIR__ . '/../includes/fonts.php'; ?>
+    <link rel="stylesheet" href="../css/base.css">
     <link rel="stylesheet" href="../css/auth.css">
 </head>
 <body>
@@ -73,7 +67,7 @@ $titulo = 'Iniciar sesión';
     <aside class="auth__brand">
         <picture>
             <source srcset="../Logo/logoisft177.webp" type="image/webp">
-            <img src="../Logo/logoisft177-480.png" alt="Logo del ISFT 177" class="auth__logo">
+            <img src="../Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177" class="auth__logo">
         </picture>
         <p class="auth__institution">ISFT N° 177</p>
         <p class="auth__tagline">

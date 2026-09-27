@@ -13,12 +13,12 @@ if (!empty($_SESSION['es_admin']) && $_SESSION['es_admin'] === true) {
 }
 
 $nombre_usuario = '';
-$votos = ['votos_1er_año' => 0, 'votos_2do_año' => 0, 'votos_3er_año' => 0];
+$votos = ['votos_1er_ano' => 0, 'votos_2do_ano' => 0, 'votos_3er_ano' => 0];
 
 if (!empty($_SESSION['usuario_id'])) {
     try {
         $stmt = $pdo->prepare(
-            'SELECT nombre, votos_1er_año, votos_2do_año, votos_3er_año
+            'SELECT nombre, votos_1er_ano, votos_2do_ano, votos_3er_ano
                FROM usuarios
               WHERE id = ?'
         );
@@ -26,9 +26,9 @@ if (!empty($_SESSION['usuario_id'])) {
         $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $completo = $usuario
-            && $usuario['votos_1er_año'] == 1
-            && $usuario['votos_2do_año'] == 1
-            && $usuario['votos_3er_año'] == 1;
+            && $usuario['votos_1er_ano'] == 1
+            && $usuario['votos_2do_ano'] == 1
+            && $usuario['votos_3er_ano'] == 1;
 
         if (!$completo) {
             header('Location: votacion.php');
@@ -51,18 +51,12 @@ $titulo = '¡Gracias por tu voto!';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= htmlspecialchars($titulo) ?> | ISFT 177</title>
-        <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
-         preconnect evita el round-trip extra al pedir la hoja de estilos. -->
+    <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
+         Las tipografias van en un parcial, con la precarga de los .woff2 y la
+         hoja de @font-face: ver includes/fonts.php. -->
     <?php include __DIR__ . '/includes/theme-inline.php'; ?>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Lato:wght@300;400;700&display=swap">
-    <link rel="stylesheet" href="css/tokens.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/icons.css">
-    <link rel="stylesheet" href="css/theme-toggle.css">
-    <link rel="stylesheet" href="css/nav.css">
+    <?php include __DIR__ . '/includes/fonts.php'; ?>
+    <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/closing.css">
 </head>
 <body>
