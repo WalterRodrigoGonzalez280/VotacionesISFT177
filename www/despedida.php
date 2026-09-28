@@ -17,10 +17,16 @@
     <main class="shell__main closing" id="contenido">
 
         <div class="closing__card">
-            <picture>
-                <source srcset="Logo/logoisft177.webp" type="image/webp">
-                <img src="Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177" class="closing__logo">
-            </picture>
+            <?php /* Mismo srcset que en login.php. Los breakpoints del sizes son
+                      los de closing.css: 7rem base y 8.5rem desde 40rem. */ ?>
+            <img src="Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177"
+                 class="closing__logo"
+                 sizes="(min-width: 40rem) 136px, 112px"
+                 srcset="Logo/logoisft177-96.png 96w,
+                         Logo/logoisft177-160.png 160w,
+                         Logo/logoisft177-192.png 192w,
+                         Logo/logoisft177-256.png 256w,
+                         Logo/logoisft177-480.png 480w">
 
             <h1 class="closing__title">¡Hasta pronto!</h1>
 

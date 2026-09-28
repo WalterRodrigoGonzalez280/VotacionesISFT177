@@ -39,19 +39,34 @@ if (!$logueado) {
     <div class="sitebar__inner wrap wrap--wide">
 
         <a class="sitebar__brand" href="/index.php">
-            <?php /* Los 480 px, no una version mas chica. Se probo bajar el
-                      logo a 192 px para ahorrar 30 KB y se vio borroso: el
+            <?php /* Durante un tiempo se sirvio un unico 480 px. Se probo bajar
+                      el logo a 192 px para ahorrar 30 KB y se vio borroso: el
                       escudo tiene lettering chico adentro y a 40 px de alto se
-                      nota. Volver a 480 px sigue siendo mas liviano que lo que
-                      se servia antes (el .webp de 480 pesaba 35 KB contra 23 de
-                      este PNG), asi que la nitidez no cuesta nada.
+                      nota. Volver a 480 px era mas liviano que el .webp de 480
+                      que se servia antes (35 KB contra 23 de este PNG), asi que
+                      la nitidez no costaba nada.
+
+                      El srcset mantiene esa nitidez y ahora ademas no descarga de
+                      mas: sizes="44px" es el ancho real del escudo (2.5rem, o
+                      2.75rem desde el breakpoint), asi que con DPR 2 el
+                      navegador toma el archivo de 96 px y lo dibuja 1:1 sobre
+                      los pixeles reales -- mas nitido todavia que reducir el de
+                      480, y con menos bytes. El 480 queda en el srcset solo para
+                      pantallas de densidad muy alta.
 
                       Los width/height NO fijan el tamano en pantalla -- eso lo
                       hace el CSS --: estan para que el navegador reserve el
                       espacio y la pagina no salte cuando la imagen llega, que
-                      era lo que Lighthouse medi como CLS 0,112. */ ?>
+                      era lo que Lighthouse medi como CLS 0,112. Todas las
+                      variantes son cuadradas, asi que la relacion de aspecto
+                      sigue siendo 1:1 y el CLS no cambia. */ ?>
             <img src="/Logo/logoisft177-480.png" alt="" class="sitebar__logo"
-                 width="480" height="480" aria-hidden="true">
+                 width="480" height="480" aria-hidden="true"
+                 sizes="44px"
+                 srcset="/Logo/logoisft177-96.png 96w,
+                         /Logo/logoisft177-160.png 160w,
+                         /Logo/logoisft177-192.png 192w,
+                         /Logo/logoisft177-480.png 480w">
             <span class="sitebar__text">
                 <span class="sitebar__title">Votación de Proyectos</span>
                 <?php /* El año sale de la base (anioVotacion). El function_exists

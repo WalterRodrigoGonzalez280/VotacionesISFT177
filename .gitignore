@@ -9,3 +9,12 @@ Backup/*
 .env.prod
 backend/www/assets/img/perfiles/*
 !backend/www/assets/img/perfiles/.gitkeep
+
+# Cache de Python de tools/ (verificar-css.py, contar-css.py). Es regenerada
+# sola, no va al repo.
+__pycache__/
+*.pyc
+
+# Reportes de Lighthouse: se generan con `npx lighthouse ... --output html`.
+# Son 500-700 KB de JSON embebido y se commitean por error.
+lighthouse-*.html

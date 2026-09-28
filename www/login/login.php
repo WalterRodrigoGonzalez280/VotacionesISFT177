@@ -65,10 +65,24 @@ $titulo = 'Iniciar sesión';
 <div class="auth">
 
     <aside class="auth__brand">
-        <picture>
-            <source srcset="../Logo/logoisft177.webp" type="image/webp">
-            <img src="../Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177" class="auth__logo">
-        </picture>
+        <?php /* El escudo se pinta entre 7rem y 11rem segun el breakpoint
+                  (112-176 px), asi que el unico 480 descargaba entre 1,4x y
+                  2,7x de mas. El srcset lo elige el navegador segun la pantalla
+                  real, y el sizes replica los breakpoints de auth.css para no
+                  pedir de mas en el movil.
+
+                  No se usa <picture> con webp: para este logo el PNG le gana al
+                  webp en TODOS los tamanos (son PNG de paleta de 8 bits, no
+                  fotos), y el <source> webp ganaba siempre, dejando el srcset
+                  del <img> sin efecto. */ ?>
+        <img src="../Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177"
+             class="auth__logo"
+             sizes="(min-width: 64rem) 176px, (min-width: 40rem) 136px, 112px"
+             srcset="../Logo/logoisft177-96.png 96w,
+                     ../Logo/logoisft177-160.png 160w,
+                     ../Logo/logoisft177-192.png 192w,
+                     ../Logo/logoisft177-256.png 256w,
+                     ../Logo/logoisft177-480.png 480w">
         <p class="auth__institution">ISFT N° 177</p>
         <p class="auth__tagline">
             Exposición de proyectos de Prácticas Profesionalizantes.

@@ -15,11 +15,31 @@ $anio = date('Y');
     <div class="sitefoot__inner wrap wrap--wide">
 
         <div class="sitefoot__brand">
-            <?php /* 480 px como en el encabezado, por el mismo motivo: la
-                      version chica se veía borrosa. Ver el comentario del logo
-                      en site-header.php. */ ?>
+            <?php /* El escudo se pinta a 3rem (48 px), asi que servir siempre el
+                      de 480 era descargar 10x lo que se dibuja: Lighthouse lo
+                      marca como "imagen mas grande de lo necesario" y sobran
+                      unos 20 KiB por visita.
+
+                      El srcset deja que elija el navegador segun la pantalla.
+                      Con sizes="48px" y DPR 2 (casi todo telefono) elige el de
+                      96 px, que se dibuja 1:1 sobre los pixeles reales: mas
+                      nitido que el 480 reducido, y no reintroduce el borron de
+                      la version unica de 192 px que se probo antes (ese era un
+                      solo archivo para todas las pantallas, que es el problema
+                      que el srcset viene a evitar).
+
+                      Los width/height NO fijan el tamano en pantalla -- eso lo
+                      hace el CSS (inline-size: 3rem) --: quedan para que el
+                      navegador reserve el espacio y la pagina no salte. Todas
+                      las variantes son cuadradas, asi que la relacion de aspecto
+                      no cambia y el CLS tampoco. */ ?>
             <img src="/Logo/logoisft177-480.png" alt="Logo del ISFT 177"
-                 class="sitefoot__logo" width="480" height="480">
+                 class="sitefoot__logo" width="480" height="480"
+                 sizes="48px"
+                 srcset="/Logo/logoisft177-96.png 96w,
+                         /Logo/logoisft177-160.png 160w,
+                         /Logo/logoisft177-192.png 192w,
+                         /Logo/logoisft177-480.png 480w">
             <p class="sitefoot__name">Votación de Proyectos</p>
             <p class="sitefoot__tagline">
                 Exposición de proyectos de Prácticas Profesionalizantes.<br>

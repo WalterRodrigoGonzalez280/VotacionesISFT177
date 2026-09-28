@@ -124,10 +124,17 @@ $titulo = $pide_codigo ? 'Confirmar operación' : 'Definir contraseña';
 <div class="auth">
 
     <aside class="auth__brand">
-        <picture>
-            <source srcset="../Logo/logoisft177.webp" type="image/webp">
-            <img src="../Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177" class="auth__logo">
-        </picture>
+        <?php /* Mismo srcset que en login.php, y por el mismo motivo: el webp
+                  de 480 pesa mas que el PNG y bloqueaba el srcset. Los
+                  breakpoints del sizes son los de auth.css. */ ?>
+        <img src="../Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177"
+             class="auth__logo"
+             sizes="(min-width: 64rem) 176px, (min-width: 40rem) 136px, 112px"
+             srcset="../Logo/logoisft177-96.png 96w,
+                     ../Logo/logoisft177-160.png 160w,
+                     ../Logo/logoisft177-192.png 192w,
+                     ../Logo/logoisft177-256.png 256w,
+                     ../Logo/logoisft177-480.png 480w">
         <p class="auth__institution">ISFT N° 177</p>
         <p class="auth__tagline">
             Exposición de proyectos de Prácticas Profesionalizantes.
