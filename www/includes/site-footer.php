@@ -57,6 +57,6 @@ $anio = date('Y');
     </div>
 
     <p class="sitefoot__legal">
-        Desarrollado por Alumnos de 2do de Sistemas - ISFT N° 177 · <?= (int)$anio ?>
+        Desarrollado por Alumnos de 3ero de Sistemas - ISFT N° 177 · <?= (int)$anio ?>
     </p>
 </footer>

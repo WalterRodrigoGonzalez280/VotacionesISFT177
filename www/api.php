@@ -548,11 +548,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 ];
             }
 
+            // El año de la edición no viene en `configuracion_votacion`: está en
+            // su propia tabla y se agrega al mismo objeto para que el formulario
+            // lo precargue de una. Es un SELECT y no un INSERT: si la tabla
+            // todavía no existe, esto no debe tirar abajo la pantalla de
+            // configuración, solo mostrar el año sin cargar.
+            $configuracion['anio'] = anioVotacion();
+
             echo json_encode(['success' => true, 'configuracion' => $configuracion]);
         } catch (PDOException $e) {
             error_log("Error obteniendo configuración: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Error al obtener la configuración']);
+            echo json_encode(['success' => false, 'error' => 'No pudimos cargar la configuración. Probá de nuevo.']);
         }
         exit;
     }
@@ -567,10 +574,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         $inicio_votacion = $_POST['inicio_votacion'];
         $fin_votacion = $_POST['fin_votacion'];
+        $anio = (int)($_POST['anio'] ?? 0);
 
         if (empty($inicio_votacion) || empty($fin_votacion)) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Todos los campos son requeridos']);
+            exit;
+        }
+
+        // Rango sensato: si mandan "20" o "99999" es un error de tipeo, no un
+        // ano. Antes no hacia falta validarlo porque el ano no se guardaba.
+        if ($anio < 2000 || $anio > 2100) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'El año no es válido']);
             exit;
         }
 
@@ -586,6 +602,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Crear nueva configuración
             $stmt = $pdo->prepare("INSERT INTO configuracion_votacion (inicio_votacion, fin_votacion, activo) VALUES (?, ?, 1)");
             $stmt->execute([$inicio_datetime, $fin_datetime]);
+
+            // El año de la edición va en su propia tabla (anio_votacion). Igual
+            // que la ventana: se deja activo uno solo y el anterior se apaga, que
+            // es lo que hace anioVotacion() al leer.
+            $stmt = $pdo->prepare("UPDATE anio_votacion SET activo = 0");
+            $stmt->execute();
+
+            $stmt = $pdo->prepare("INSERT INTO anio_votacion (anio, activo) VALUES (?, 1)");
+            $stmt->execute([$anio]);
 
             echo json_encode(['success' => true, 'message' => 'Configuración guardada correctamente']);
         } catch (PDOException $e) {

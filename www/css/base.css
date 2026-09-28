@@ -841,6 +841,7 @@ ol[class] { list-style: none; padding: 0; }
     font-size: var(--fs-xs);
 }
 
+
 .dialog__warn .icon { margin-block-start: 0.1em; flex: none; }
 
 
@@ -1125,13 +1126,17 @@ ol[class] { list-style: none; padding: 0; }
 /* ---------- Panel: navegacion + sesion ---------- */
 
 /* Sin JS el panel se ve siempre: es la navegacion del sitio y no puede quedar
-   escondida detras de un control que no esta. */
+   escondida detras de un control que no esta.
+
+   El gap va en s-4 y no en s-3: con s-3 el bloque de sesion (switch, nombre de
+   usuario y "Salir") queda a un pelo de los enlaces de navegacion, y en una
+   pantalla angosta los dos bloques se leen como una sola lista confusa. */
 .sitebar__panel {
     order: 3;
     inline-size: 100%;
     display: grid;
-    gap: var(--s-3);
-    padding-block-start: var(--s-3);
+    gap: var(--s-4);
+    padding-block-start: var(--s-4);
     border-block-start: 1px solid var(--c-line);
 }
 
@@ -1270,8 +1275,10 @@ ol[class] { list-style: none; padding: 0; }
 
 .sitefoot__links--static { color: var(--c-muted); font-size: var(--fs-sm); }
 
+/* El margen de abajo estaba ausente: el texto legal quedaba pegado al borde
+   inferior del pie, sin aire. */
 .sitefoot__legal {
-    margin-block-start: var(--s-5);
+    margin-block: var(--s-5);
     padding-block-start: var(--s-4);
     border-block-start: 1px solid var(--c-line);
     text-align: center;
@@ -1300,7 +1307,11 @@ ol[class] { list-style: none; padding: 0; }
        dejo mobile. */
     .sitebar__panel {
         order: 2;
-        inline-size: auto;
+        /* `flex: 1` y no `inline-size: auto`: el panel tiene que ocupar todo el
+           ancho que sobra para que el bloque de sesion se pueda ir al borde.
+           Con auto el panel se ajusta al contenido y no queda nada que empujar. */
+        flex: 1;
+        min-inline-size: 0;
         display: flex;
         align-items: center;
         gap: var(--s-4);
@@ -1312,10 +1323,31 @@ ol[class] { list-style: none; padding: 0; }
     /* Nav primero y sesion despues, como antes del menu: en escritorio el
        switch de tema va a la derecha, entre el nav y el borde. Al reves (que
        es lo que pasa si los dos quedan en order 0) el switch queda pegado a
-       la marca. */
+       la marca.
+
+       El `margin-inline-start: auto` empuja el bloque entero (nombre de
+       usuario, switch de tema y "Salir") al extremo derecho de la barra, en vez
+       de dejarlo pegado al nav con media pantalla de aire. Solo aca: en mobile
+       el switch va al PRINCIPIO del panel (ver `.sitebar__aside
+       [data-theme-toggle]` mas arriba), y un auto aca lo cruzaria de vuelta. */
     .sitebar__nav { order: 0; }
-    .sitebar__aside { order: 1; }
+    /* El `inline-size: 100%` de mobile hay que quitarlo ACA: con el panel
+       estirado (flex: 1) el aside se tomaba todo el ancho, y un `auto` sin
+       espacio libre no empuja nada. Sin esto el bloque de sesion queda pegado
+       al nav con media pantalla de aire al lado. */
+    .sitebar__aside { order: 1; inline-size: auto; margin-inline-start: auto; }
     .sitebar__aside [data-theme-toggle] { order: 0; margin-inline-end: 0; }
+
+    /* "Salir" al mismo alto que el switch de tema, que es un circulo de 2,5rem.
+       Con el .btn--sm de mobile queda en ~25px al lado de un circulo de 40, y
+       los dos botones parecen de familias distintas. Aca se sube el alto y el
+       cuerpo del texto, no el padding de mobile. */
+    .sitebar__aside .btn {
+        min-block-size: 2.5rem;
+        padding-block: 0.55em;
+        padding-inline: 1.35em;
+        font-size: var(--fs-sm);
+    }
 
     /* Los enlaces vuelven a ser una fila scrolleable, como antes del menu. */
     .navlist {

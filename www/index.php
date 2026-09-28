@@ -86,7 +86,10 @@ if ($es_admin) {
     $cta = ['texto' => 'Ingresar para votar', 'href' => 'login/login.php', 'icono' => 'llave'];
 }
 
-$titulo = 'Exposición de Proyectos 2025';
+// El año sale de la tabla anio_votacion (ver anioVotacion() en conexion.php).
+// Antes estaba escrito aca a mano, que es exactamente el tipo de dato que
+// queda viejo en un archivo que nadie vuelve a abrir.
+$titulo = 'Exposición de Proyectos ' . anioVotacion();
 ?>
 <!DOCTYPE html>
 <html lang="es">

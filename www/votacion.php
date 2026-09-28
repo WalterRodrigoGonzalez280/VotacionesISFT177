@@ -15,6 +15,7 @@ $es_admin = !empty($_SESSION['es_admin']) && $_SESSION['es_admin'] === true;
 $votacion_abierta = true;
 $tiempo_restante = null;
 $mensaje_espera = null;
+$error_bd = false;
 
 try {
     $stmt = $pdo->prepare(
@@ -49,6 +50,13 @@ try {
     }
 } catch (PDOException $e) {
     error_log('Votación: horario: ' . $e->getMessage());
+
+    /* Sin esto la pagina se dibuja IGUAL que con la votacion abierta, porque
+       $votacion_abierta arranca en true: con la base caida alguien vota, el
+       backend le responde que no, y no entiende por que. Aca se cierra la
+       votacion y se avisa. */
+    $error_bd = true;
+    $votacion_abierta = false;
 }
 
 // Solo tiene sentido con sesion: sin ella no hay votos propios que mirar ni
@@ -148,7 +156,19 @@ $nombre_usuario = $_SESSION['usuario_nombre'] ?? '';
                     </p>
                 <?php endif; ?>
 
-            <?php if (!$votacion_abierta): ?>
+            <?php if ($error_bd): ?>
+                <?php /* Va PRIMERO porque con la base caida tambien se pone
+                          $votacion_abierta = false: si no, caeria en el bloque de
+                          abajo, que habla de fechas y muestro un texto vacio. */ ?>
+                <section class="card waiting" aria-labelledby="sin-bd">
+                    <h2 class="card__title" id="sin-bd">No pudimos consultar la votación</h2>
+                    <p class="waiting__lead">
+                        El sistema no está respondiendo en este momento, así que
+                        por ahora no se puede votar. Tu voto no se registró:
+                        intentá de nuevo en unos minutos.
+                    </p>
+                </section>
+            <?php elseif (!$votacion_abierta): ?>
                 <section class="card waiting" aria-labelledby="espera">
                     <h2 class="card__title" id="espera">Votación no disponible</h2>
                     <p class="waiting__lead"><?= htmlspecialchars($mensaje_espera) ?></p>

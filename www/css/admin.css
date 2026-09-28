@@ -10,7 +10,13 @@
 }
 
 /* ---------- Tabs ---------- */
+div[data-config] {
+    margin: 10px 0px;
+}
 
+[data-users-list] {
+    margin: 10px 0px;
+}
 .tabs__list {
     display: flex;
     gap: var(--s-1);
@@ -77,6 +83,12 @@
 
 /* ---------- Tabla ---------- */
 
+/* Wrapper con scroll horizontal en mobile */
+.table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .table {
     inline-size: 100%;
     border-collapse: collapse;
@@ -84,7 +96,6 @@
     background: var(--c-surface);
     border: 1px solid var(--c-line);
     border-radius: var(--r-md);
-    overflow: hidden;
 }
 
 .table th,
@@ -178,7 +189,7 @@
 
 /* ---------- Ganadores ---------- */
 
-.winners { display: grid; gap: var(--s-3); }
+.winners { display: grid; gap: var(--s-4); }
 
 .winnerbox {
     padding: var(--s-4);
@@ -186,6 +197,9 @@
     border: 1px solid var(--c-line);
     border-inline-start: 4px solid var(--c-gold);
     border-radius: var(--r-sm);
+    /* El gap de la grilla ya separa las tarjetas; esto suma aire cuando el
+       panel las apila en una sola columna, que es el caso de mobile. */
+    margin-block-end: var(--s-2);
 }
 
 .winnerbox--overall {
@@ -213,14 +227,20 @@
    dentro de una caja de 478 y los inputs se pasaban del borde derecho de la
    tarjeta, tapando el borde y el padding.
 
-   38rem es lo que necesitan los dos campos uno al lado del otro: 265 + 265 +
-   16 de gap + 48 de padding, mas un par de px de aire para que el control no
-   tenga que comprimir sus segmentos. Si el viewport es mas angosto, el
-   `minmax(0, 1fr)` de abajo deja que encojan en vez de desbordar. */
+   Ahora la caja toma TODO el ancho del panel: sin `max-inline-size` los bordes
+   de la tarjeta coinciden con los del encabezado de arriba (el "Horario de
+   votacion" y el boton "Actualizar"), que es lo que se busca. Los dos campos
+   uno al lado del otro necesitan 265 + 265 + 16 de gap + 48 de padding = 594, o
+   sea ~38rem; a partir de ahi sobra, y el `minmax(0, 1fr)` de abajo reparte el
+   espacio en vez de dejar el contenido pegado a un lado.
+
+   `div[data-config]` tiene `margin: 10px 0` (y no `10px` en los cuatro lados),
+   asi que el padding-block del panel se mantiene pero los bordes verticales
+   siguen alineados con el encabezado. */
 .configform {
     display: grid;
     gap: var(--s-4);
-    max-inline-size: 38rem;
+    inline-size: 100%;
     padding: var(--s-5);
     background: var(--c-surface);
     border: 1px solid var(--c-line);
@@ -251,6 +271,11 @@
 .message--error   { background: var(--c-danger-bg); border-color: var(--c-danger-line); color: var(--c-danger-ink); }
 
 /* ---------- Responsive ---------- */
+
+/* Sin esto el boton queda pegado al ultimo campo: el `gap` de la grilla lo
+   separa, pero con la fila del año (que trae su propio hint) el bloque parece
+   una sola cosa. */
+.configform .btn { margin-block-start: var(--s-2); }
 
 @media (min-width: 48rem) {
     .winners { grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }

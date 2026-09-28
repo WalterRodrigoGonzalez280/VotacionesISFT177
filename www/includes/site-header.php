@@ -54,7 +54,11 @@ if (!$logueado) {
                  width="480" height="480" aria-hidden="true">
             <span class="sitebar__text">
                 <span class="sitebar__title">Votación de Proyectos</span>
-                <span class="sitebar__sub">ISFT N° 177 · Exposición 2025</span>
+                <?php /* El año sale de la base (anioVotacion). El function_exists
+                          esta porque este parcial tambien lo usan paginas que no
+                          conectan a la base: que falte una decoracion es mucho
+                          menos grave que que el encabezado se rompa. */ ?>
+                <span class="sitebar__sub">ISFT N° 177 · Exposición <?= function_exists('anioVotacion') ? anioVotacion() : (int)date('Y') ?></span>
             </span>
         </a>
 

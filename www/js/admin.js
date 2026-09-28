@@ -145,7 +145,9 @@ async function loadUsers() {
     tbody.append(buildUserRow(user));
   }
   table.append(tbody);
-  fragment.append(table);
+  const wrap = el('div', 'table-wrap');
+  wrap.append(table);
+  fragment.append(wrap);
   render(container, fragment);
 }
 
@@ -356,20 +358,41 @@ async function loadConfig() {
     return { wrap, input };
   };
 
+  /* El año de la edición, que se guarda en la tabla anio_votacion. */
+  const buildYearField = (value) => {
+    const wrap = el('div', 'field');
+    const lbl = el('label', 'field__label', 'Año de la exposición');
+    lbl.htmlFor = 'anio';
+    const input = el('input', 'field__input');
+    input.type = 'number';
+    input.id = 'anio';
+    input.name = 'anio';
+    input.value = value || new Date().getFullYear();
+    input.min = '2000';
+    input.max = '2100';
+    input.step = '1';
+    input.required = true;
+    const hint = el('p', 'field__hint', 'Es el año que se muestra en el título y en el encabezado.');
+    wrap.append(lbl, input, hint);
+    return { wrap, input };
+  };
+
   const start = buildField('inicio_votacion', 'Inicio', config.inicio_votacion);
   const end = buildField('fin_votacion', 'Fin', config.fin_votacion);
+  const year = buildYearField(config.anio);
 
   const submit = el('button', 'btn btn--primary', 'Guardar configuración');
   submit.type = 'button';
   submit.dataset.action = 'save-config';
 
-  form.append(start.wrap, end.wrap, submit);
+  form.append(start.wrap, end.wrap, year.wrap, submit);
   render(container, form);
 }
 
 async function saveConfig() {
   const inicio = document.getElementById('inicio_votacion')?.value;
   const fin = document.getElementById('fin_votacion')?.value;
+  const anio = Number(document.getElementById('anio')?.value);
 
   if (!inicio || !fin) {
     notify('Completá las dos fechas.', 'error');
@@ -379,10 +402,15 @@ async function saveConfig() {
     notify('La fecha de fin tiene que ser posterior a la de inicio.', 'error');
     return;
   }
+  if (!Number.isInteger(anio) || anio < 2000 || anio > 2100) {
+    notify('El año tiene que ser un número entre 2000 y 2100.', 'error');
+    return;
+  }
 
   const { ok, data } = await api('guardar_configuracion', {
     inicio_votacion: inicio,
     fin_votacion: fin,
+    anio: String(anio),
   });
 
   if (!ok) {
