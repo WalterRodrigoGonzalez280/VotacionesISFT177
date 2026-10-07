@@ -5,19 +5,10 @@
    components.css. Aca va lo propio de esta pagina.
    ========================================================================== */
 
-.topbar--center {
-    flex-direction: column;
-    gap: var(--s-2);
-    text-align: center;
-    padding-block: var(--s-6);
-    border-block-end: 1px solid var(--c-line);
-    background:
-        radial-gradient(120% 100% at 50% 0%, var(--c-gold-wash) 0%, transparent 62%),
-        var(--c-bg);
-}
-
-.topbar--center .topbar__logo { inline-size: 4.5rem; }
-.topbar--center .topbar__name { font-size: var(--fs-base); }
+/* `.topbar--center` y sus dos descendientes se borraron con la familia
+   `.topbar` de base.css: no habia markup que los emitiera, asi que eran una
+   variante de algo que ya no existe. El encabezado real de esta pagina es
+   `.sitebar`, que se estiliza desde base.css. */
 
 /* ---------- Hero ---------- */
 
@@ -161,7 +152,6 @@
     .landing { gap: var(--s-5); }
     .hero { padding-block: var(--s-7); }
     .howto { grid-template-columns: repeat(3, 1fr); }
-    .topbar--center .topbar__logo { inline-size: 5.5rem; }
 }
 
 @media (min-width: 64rem) {

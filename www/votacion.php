@@ -92,7 +92,7 @@ try {
            FROM proyectos s
            JOIN anios g ON s.anio_id = g.id
            LEFT JOIN votos v ON s.id = v.proyecto_id
-          WHERE s.activo = TRUE
+          WHERE s.activo = 1
           GROUP BY s.id, s.nombre, s.anio_id, g.nombre
           ORDER BY s.anio_id, s.id'
     );
@@ -271,8 +271,6 @@ $nombre_usuario = $_SESSION['usuario_nombre'] ?? '';
                         </ul>
                     </section>
                 <?php endforeach; ?>
-
-                <p class="messages" role="status" aria-live="polite" data-messages></p>
             <?php endif; ?>
         </div>
     </main>

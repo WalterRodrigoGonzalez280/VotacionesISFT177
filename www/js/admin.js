@@ -14,17 +14,26 @@
 
 const ENDPOINT = 'api.php';
 
-const messages = document.querySelector('[data-messages]');
-
-/** Muestra un mensaje temporal. */
+/**
+ * Muestra un aviso con `window.alert`, que es lo mismo que ya hacen `confirm`
+ * y `prompt` en este archivo para las acciones destructivas.
+ *
+ * Antes era un cartel propio en una region `[data-messages]`, pero esa region
+ * estaba DESPUES de `.tabs`: el mensaje salia debajo de la tabla de usuarios,
+ * que es lo unico que crece, y con 20 filas ya caia a ~1000px del boton,
+ * fuera de pantalla. Un toast fijo lo arreglaba, pero `alert` tapa el
+ * `<dialog>` abierto y un toast NO puede: el dialog se pinta en el top layer,
+ * que le gana a cualquier z-index. Eso era justo lo que pasaba con "Agregar
+ * proyecto" sin nombre, que avisaba por `notify` con el modal todavia abierto.
+ *
+ * `kind` queda solo para el prefijo: sin caja roja, el error se tiene que
+ * distinguir por texto.
+ */
 function notify(text, kind = 'success') {
-  if (!messages) return;
-  messages.replaceChildren();
-  const p = document.createElement('p');
-  p.className = `message message--${kind}`;
-  p.textContent = text;
-  messages.append(p);
-  window.setTimeout(() => p.remove(), 4000);
+  // `data.message || data.error` deja `undefined` cuando la API no manda
+  // ninguno, y `alert(undefined)` muestra la palabra "undefined".
+  if (!text) return;
+  window.alert(kind === 'error' ? `Error: ${text}` : text);
 }
 
 /** @returns {Promise<{ok: boolean, data: object}>} */
@@ -61,6 +70,35 @@ function el(tag, className, text) {
 function render(container, ...nodes) {
   if (!container) return;
   container.replaceChildren(...nodes);
+  // Todo final de carga termina en un render() -- exito, vacio o error -- asi
+  // que el estado se limpia solo en cualquier `return`, sin repetirlo en los
+  // cuatro loaders.
+  container.removeAttribute('aria-busy');
+}
+
+/**
+ * Estado de carga SIN pisar lo que ya esta en pantalla.
+ *
+ * Antes cada refresh reescribia el contenedor con una linea de "Cargando ..."
+ * ANTES de que saliera la request, y como `render()` hace replaceChildren, la
+ * tabla entera se borraba. Medido con 20 usuarios: la lista pasa de 1605px a
+ * 76px y vuelve a 1605px cuando llega la respuesta, 60ms despues. 1529px de
+ * colapso, y la pagina entera con ella: eso es el salto que se ve al hacer
+ * cualquier accion. Los "pocos milisegundos" son la latencia de la peticion.
+ *
+ * No es culpa de `notify()`: `reload-users` no avisa nada y colapsa igual.
+ *
+ * El placeholder queda solo para la carga inicial, cuando no hay nada que
+ * conservar. En los refrescos la tabla vieja sigue ahi, atenuada por
+ * `aria-busy` (ver admin.css): hay senal de que se esta actualizando sin que
+ * la pagina cambie de alto.
+ */
+function showLoading(container, label) {
+  if (!container) return;
+  // El atributo va DESPUES del render: si se pusiera antes, ese mismo render lo
+  // volveria a borrar y el atenuado no llegaria a aplicarse nunca.
+  if (!container.firstElementChild) render(container, el('p', 'panel__loading', label));
+  container.setAttribute('aria-busy', 'true');
 }
 
 /* ------------------------------------------------------------------ tabs */
@@ -121,7 +159,7 @@ function onTabKeydown(event) {
 
 async function loadUsers() {
   const container = document.querySelector('[data-users-list]');
-  render(container, el('p', 'panel__loading', 'Cargando usuarios…'));
+  showLoading(container, 'Cargando usuarios…');
 
   const { ok, data } = await api('obtener_usuarios');
 
@@ -215,7 +253,7 @@ function iconNode(name) {
 
 async function loadGroups() {
   const container = document.querySelector('[data-groups-list]');
-  render(container, el('p', 'panel__loading', 'Cargando grupos…'));
+  showLoading(container, 'Cargando grupos…');
 
   const { ok, data } = await api('obtener_subgrupos_admin');
 
@@ -276,7 +314,7 @@ async function loadGroups() {
 
 async function loadWinners() {
   const container = document.querySelector('[data-winners]');
-  render(container, el('p', 'panel__loading', 'Calculando ganadores…'));
+  showLoading(container, 'Calculando ganadores…');
 
   const { ok, data } = await api('obtener_resultados');
 
@@ -333,7 +371,7 @@ const toInputValue = (value) => (value ? String(value).slice(0, 16) : '');
 
 async function loadConfig() {
   const container = document.querySelector('[data-config]');
-  render(container, el('p', 'panel__loading', 'Cargando configuración…'));
+  showLoading(container, 'Cargando configuración…');
 
   const { ok, data } = await api('obtener_configuracion');
 

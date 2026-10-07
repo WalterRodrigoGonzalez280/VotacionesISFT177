@@ -75,6 +75,20 @@ div[data-config] {
     border-radius: var(--r-md);
 }
 
+/* Refresco en curso. `showLoading()` (admin.js) marca el contenedor con
+   `aria-busy` en vez de vaciarlo, asi que la tabla o la lista vieja se quedan
+   en su lugar y la pagina no cambia de alto -- antes ese vaciado provocaba un
+   colapso de 1529px con 20 usuarios. El atenuado es la senal de que se esta
+   trabajando, y el `transition` evita que sea un corte seco.
+
+   El `.panel__loading` inicial NO se atenua: cuando el contenedor arranca vacio
+   `showLoading` pinta el placeholder y lo marca igual, pero atenuarlo un
+   instante no aporta nada y se ve raro. */
+.tabs__panel [aria-busy='true']:not(:has(.panel__loading)) {
+    opacity: 0.55;
+    transition: opacity var(--t-fast);
+}
+
 .panel__error {
     color: var(--c-danger-ink);
     background: var(--c-danger-bg);
@@ -251,24 +265,6 @@ div[data-config] {
    justamente lo que lo hacia desbordar la grilla. */
 .configform .field__input { min-inline-size: 0; }
 
-
-/* ---------- Mensajes ---------- */
-
-.messages { margin-block-start: var(--s-4); }
-.messages:empty { display: none; }
-
-.message {
-    display: flex;
-    align-items: center;
-    gap: var(--s-2);
-    padding: var(--s-3) var(--s-4);
-    border: 1px solid;
-    border-radius: var(--r-sm);
-    font-size: var(--fs-sm);
-}
-
-.message--success { background: var(--c-ok-bg);    border-color: var(--c-ok-line);    color: var(--c-ok-ink); }
-.message--error   { background: var(--c-danger-bg); border-color: var(--c-danger-line); color: var(--c-danger-ink); }
 
 /* ---------- Responsive ---------- */
 

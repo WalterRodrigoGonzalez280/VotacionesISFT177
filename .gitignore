@@ -18,3 +18,16 @@ __pycache__/
 # Reportes de Lighthouse: se generan con `npx lighthouse ... --output html`.
 # Son 500-700 KB de JSON embebido y se commitean por error.
 lighthouse-*.html
+
+# Dumps de base de datos. El de MySQL traia la app password de Gmail en texto
+# plano adentro de email_config, asi que sale del repo por aca y no por
+# confianza.
+#
+# Va por NOMBRE y en cualquier carpeta, no por extension: el patron tiene que
+# seguir funcionando aunque el dump se mueva de lugar, y `*.sql` arrastraria
+# tambien los archivos de database/ que si van (el schema de Postgres, los
+# datos y el schema de MySQL para poder volver atras).
+votacion_db.sql
+*.dump.sql
+*-dump.sql
+*-dump-*.sql

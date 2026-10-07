@@ -149,7 +149,6 @@ $tab_actual = isset($_GET['tab']) && isset($tabs[$_GET['tab']]) ? $_GET['tab'] :
                 </section>
             </div>
 
-            <p class="messages" role="status" aria-live="polite" data-messages></p>
         </div>
     </main>
 
@@ -176,7 +175,18 @@ $tab_actual = isset($_GET['tab']) && isset($tabs[$_GET['tab']]) ? $_GET['tab'] :
         </div>
 
         <div class="dialog__actions">
-            <button class="btn btn--secondary" type="submit" value="cancel">Cancelar</button>
+            <!-- `formnovalidate` NO es opcional, aunque el boton no manda nada:
+                 el form es method="dialog" y la validacion de constraints corre
+                 ANTES de cerrar el dialog. Con "Nombre del proyecto" vacio -- que
+                 es como esta siempre al abrir -- el navegador bloquea el envio,
+                 muestra el burbujon y el dialog no se cierra: Cancelar queda
+                 muerto. Medido en Chromium headless: sin el atributo dialog.open
+                 sigue en true, con el atributo pasa a false.
+
+                 Ojo con "arreglarlo" sacando el required del input: la
+                 validacion del form no es solo la del navegador, `required`
+                 tambien le avisa a la gente que usa lector de pantalla. -->
+            <button class="btn btn--secondary" type="submit" value="cancel" formnovalidate>Cancelar</button>
             <button class="btn btn--primary" type="button" data-action="add-subgroup">Agregar</button>
         </div>
     </form>

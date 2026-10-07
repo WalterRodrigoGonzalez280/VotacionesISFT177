@@ -82,19 +82,26 @@
     --r-lg:   1.25rem;
     --r-pill: 62.4375rem;
 
-    --fs-xs:   0.75rem;
-    --fs-sm:   0.875rem;
-    --fs-base: 1rem;
-    --fs-md:   clamp(1.05rem, 0.99rem + 0.3vw, 1.15rem);
-    --fs-lg:   clamp(1.2rem, 1.1rem + 0.5vw, 1.4rem);
-    --fs-xl:   clamp(1.45rem, 1.25rem + 1vw, 1.9rem);
-    --fs-2xl:  clamp(2rem, 1.4rem + 3vw, 3.2rem);
+    /* Escala tipográfica. Todo el sitio (las 6 hojas) saca sus font-size de
+       acá: no hay ni un tamaño suelto. Subir la lectura de a sala una vez por
+       acá, no archivo por archivo.
+
+       Escala ~15% sobre la anterior: 12/14/16 -> 14/16/18px. Los clamp()
+       mantienen la forma de la original (el preferred quieto, los extremos
+       proporcionalmente mas abiertos) para que la tipografia siga creciendo
+       con el viewport en vez de pegarse a un tope. */
+    --fs-xs:   0.875rem;  /* 14px */
+    --fs-sm:   1rem;      /* 16px: el cuerpo de los .btn */
+    --fs-base: 1.125rem;  /* 18px */
+    --fs-md:   clamp(1.21rem, 1.14rem + 0.35vw, 1.32rem);
+    --fs-lg:   clamp(1.38rem, 1.27rem + 0.58vw, 1.61rem);
+    --fs-xl:   clamp(1.67rem, 1.44rem + 1.15vw, 2.19rem);
+    --fs-2xl:  clamp(2.3rem, 1.61rem + 3.45vw, 3.68rem);
     --lh-tight: 1.15;
     --lh-body:  1.65;
 
     --t-fast: 140ms ease;
     --wrap: 68rem;
-    --wrap-narrow: 26rem;
 }
 
 /* ==========================================================================
@@ -461,50 +468,15 @@ ol[class] { list-style: none; padding: 0; }
     margin-inline: auto;
 }
 
-.wrap--narrow { --wrap: var(--wrap-narrow); }
+/* `.wrap--narrow` y el token `--wrap-narrow` se borraron: 0 usos. El ancho
+   de columna se controla con `.wrap--wide`, que si se usa en 4 paginas. */
 
-/* Encabezado de pagina */
-.topbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--s-3);
-    padding-block: var(--s-4) var(--s-5);
-    border-block-end: 1px solid var(--c-line);
-    background: var(--c-bg);
-}
-
-.topbar__brand {
-    display: flex;
-    align-items: center;
-    gap: var(--s-3);
-    text-decoration: none;
-    color: inherit;
-    margin-inline-end: auto;
-}
-
-.topbar__logo { inline-size: 2.75rem; flex: none; }
-
-.topbar__name {
-    font-size: var(--fs-sm);
-    font-weight: 700;
-    color: var(--c-white);
-    line-height: var(--lh-tight);
-}
-
-.topbar__sub {
-    display: block;
-    font-size: var(--fs-xs);
-    font-weight: 400;
-    color: var(--c-muted);
-}
-
-.topbar__actions {
-    display: flex;
-    align-items: center;
-    gap: var(--s-2);
-    flex-wrap: wrap;
-}
+/* La familia `.topbar` vivio aca hasta que el encabezado paso a `.sitebar`
+   (ver `.sitebar` mas abajo y site-header.php). Se borro entera porque ningun
+   markup la emitia ya: los selectoresNode-bold__brand, __logo, __name, __sub y
+   __actions daban 0 coincidencias en todos los .php y .js del proyecto. Sin
+   ellas se caia tambien el bloque `.topbar--center` de landing.css, que era
+   solo una variante de esta. */
 
 .foot {
     padding-block: var(--s-5) var(--s-6);
@@ -735,22 +707,17 @@ ol[class] { list-style: none; padding: 0; }
 
 .badge--lg { padding: 0.5em 1.3em; font-size: var(--fs-md); }
 
-.badge__dot {
-    inline-size: 0.5rem;
-    block-size: 0.5rem;
-    border-radius: 50%;
-    background: var(--c-muted);
-    flex: none;
-}
+/* El punto de estado (`.badge__dot`) se borro: el markup del badge es un <p>
+   sin elemento hijo, asi que las tres reglas que lo recoloreaban por estado
+   (`.badge--open/soon/closed .badge__dot`) no tenian a que aplicarse. Los
+   modificadores `.badge--open/soon/closed` se conservan: index.php los emite
+   por variable (`$estados[$estado]['clase']`), no como string literal. */
 
 .badge--open  { border-color: var(--c-ok-line);  color: var(--c-ok-ink);  background: var(--c-ok-bg); }
-.badge--open  .badge__dot { background: var(--c-ok); }
 
 .badge--soon  { border-color: var(--c-line-gold); color: var(--c-gold-text); }
-.badge--soon  .badge__dot { background: var(--c-gold); }
 
 .badge--closed { border-color: var(--c-danger-line); color: var(--c-danger-ink); background: var(--c-danger-bg); }
-.badge--closed .badge__dot { background: var(--c-danger); }
 
 .tag {
     display: inline-block;
@@ -776,7 +743,8 @@ ol[class] { list-style: none; padding: 0; }
 }
 
 .alert--error { background: var(--c-danger-bg); border-color: var(--c-danger-line); color: var(--c-danger-ink); }
-.alert--ok    { background: var(--c-ok-bg);     border-color: var(--c-ok-line);     color: var(--c-ok-ink); }
+/* `.alert--ok` se borro: 0 usos. Los avisos reales usan `--error` (index.php)
+   y `--info` (votacion.php). */
 .alert--info  { background: var(--c-info-bg);   border-color: var(--c-info-line);   color: var(--c-info-ink); }
 
 /* ---------- Lista de pasos ---------- */
@@ -789,6 +757,13 @@ ol[class] { list-style: none; padding: 0; }
     align-items: flex-start;
     color: var(--c-muted);
 }
+
+/* La frase entera es UN solo flex item: sin esto, el <strong> es su propio
+   item, se achica hasta perder el ancho del texto y parte "1.º" de "año". */
+.steps__item > span { flex: 1 1 auto; min-inline-size: 0; }
+
+/* "1.º año" queda siempre en una sola línea aunque la columna sea angosta. */
+.steps__item strong { white-space: nowrap; }
 
 .steps__item::before {
     counter-increment: step;
@@ -885,7 +860,7 @@ ol[class] { list-style: none; padding: 0; }
 
 .icon--sm { inline-size: 0.95em; block-size: 0.95em; }
 .icon--lg { inline-size: 1.6em;  block-size: 1.6em;  stroke-width: 1.7; }
-.icon--xl { inline-size: 2.4em;  block-size: 2.4em;  stroke-width: 1.5; }
+/* `.icon--xl` se borro: la escala en uso es --sm y --lg, --xl daba 0 usos. */
 
 /* El sprite se oculta sinSacarlo del flujo de lectura. */
 .sprite {

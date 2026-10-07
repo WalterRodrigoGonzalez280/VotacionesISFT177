@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $pdo->beginTransaction();
 
             // Verificar que el subgrupo existe y pertenece al grupo
-            $stmt = $pdo->prepare("SELECT id FROM proyectos WHERE id = ? AND anio_id = ? AND activo = TRUE");
+            $stmt = $pdo->prepare("SELECT id FROM proyectos WHERE id = ? AND anio_id = ? AND activo = 1");
             $stmt->execute([$subgrupo_id, $grupo_id]);
             if (!$stmt->fetch()) {
                 $pdo->rollBack();
@@ -176,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 JOIN anios g ON s.anio_id = g.id 
                 LEFT JOIN votos v ON s.id = v.proyecto_id
                 LEFT JOIN votos uv ON s.id = uv.proyecto_id AND uv.usuario_id = ?
-                WHERE s.activo = TRUE 
+                WHERE s.activo = 1
                 GROUP BY s.id, s.nombre, s.anio_id, g.nombre, uv.id
                 ORDER BY s.anio_id, s.id
             ");
@@ -203,8 +203,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
 
         try {
-            // Columnas explicitas, NUNCA `u.*`: con el asterisco la respuesta
-            // JSON arrastraba `password` (hash bcrypt) y `token` a cualquier
+            // Columnas explicitas, NUNCA 'u.*': con el asterisco la respuesta
+            // JSON arrastraba 'password' (hash bcrypt) y 'token' a cualquier
             // cliente que llame a esta accion.
             $stmt = $pdo->prepare("
                 SELECT u.id,
@@ -213,18 +213,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                        u.activo,
                        u.rol_id,
                        u.es_admin,
-                       u.`votos_1er_ano` AS votos_1er_ano,
-                       u.`votos_2do_ano` AS votos_2do_ano,
-                       u.`votos_3er_ano` AS votos_3er_ano,
+                       u.votos_1er_ano,
+                       u.votos_2do_ano,
+                       u.votos_3er_ano,
                        u.fecha_registro,
                        COUNT(v.id) as total_votos,
-                       GROUP_CONCAT(CONCAT(s.nombre, ' (', g.nombre, ')') SEPARATOR ', ') as votos_detalle
+                       STRING_AGG(s.nombre || ' (' || g.nombre || ')', ', ') as votos_detalle
                 FROM usuarios u
                 LEFT JOIN votos v ON u.id = v.usuario_id
                 LEFT JOIN proyectos s ON v.proyecto_id = s.id
                 LEFT JOIN anios g ON s.anio_id = g.id
                 GROUP BY u.id, u.nombre, u.email, u.activo, u.rol_id, u.es_admin,
-                         u.`votos_1er_ano`, u.`votos_2do_ano`, u.`votos_3er_ano`, u.fecha_registro
+                         u.votos_1er_ano, u.votos_2do_ano, u.votos_3er_ano, u.fecha_registro
                 ORDER BY u.fecha_registro DESC
             ");
             $stmt->execute();
@@ -250,6 +250,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $grupo_id = isset($_POST['grupo_id']) ? (int)$_POST['grupo_id'] : null;
 
         try {
+            // El GROUP BY lista TODAS las columnas del SELECT menos las agregadas.
+            // MySQL 5.7 resolvia `GROUP BY s.id` solo, porque s.id es la primary
+            // key y de ahi se deduce el resto de la fila (functional dependency).
+            // Postgres NO implementa esa deduccion: `GROUP BY s.id` solo lo
+            // aceptaria si s.id fuera ademas la primary key de una tabla de la
+            // que depende s.nombre, que no es el caso, y la consulta moria con
+            // `column "s.nombre" must appear in the GROUP BY clause`.
             if ($grupo_id) {
                 $stmt = $pdo->prepare("
                     SELECT s.id, s.nombre, s.activo, s.anio_id AS grupo_id,
@@ -258,8 +265,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     FROM proyectos s
                     JOIN anios g ON s.anio_id = g.id
                     LEFT JOIN votos v ON s.id = v.proyecto_id
-                    WHERE s.activo = TRUE AND s.anio_id = ?
-                    GROUP BY s.id
+                    WHERE s.activo = 1 AND s.anio_id = ?
+                    GROUP BY s.id, s.nombre, s.activo, s.anio_id, g.nombre
                     ORDER BY s.id
                 ");
                 $stmt->execute([$grupo_id]);
@@ -271,8 +278,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     FROM proyectos s
                     JOIN anios g ON s.anio_id = g.id
                     LEFT JOIN votos v ON s.id = v.proyecto_id
-                    WHERE s.activo = TRUE
-                    GROUP BY s.id
+                    WHERE s.activo = 1
+                    GROUP BY s.id, s.nombre, s.activo, s.anio_id, g.nombre
                     ORDER BY s.anio_id, s.id
                 ");
                 $stmt->execute();
@@ -380,7 +387,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     2 => 'votos_2do_ano',
                     3 => 'votos_3er_ano'
                 ];
-                $campo = $campos_voto[$voto['grupo_id']];
+
+                // La clave se leia como $voto['grupo_id'], pero la columna se
+                // llama anio_id: el indice no existia, daba null, el nombre de
+                // columna llegaba vacio a la sentencia y el UPDATE era
+                // invalido. Con eso, eliminar un subgrupo con votos tiraba
+                // siempre 500 y no borraba nada. Es el mismo campo que en
+                // `votar`, que tambien lo pasa como anio_id.
+                $campo = $campos_voto[$voto['anio_id']] ?? null;
+
+                if ($campo === null) {
+                    continue;
+                }
 
                 $stmt = $pdo->prepare("UPDATE usuarios SET $campo = 0 WHERE id = ?");
                 $stmt->execute([$voto['usuario_id']]);
@@ -391,7 +409,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt->execute([$id]);
 
             // Marcar subgrupo como inactivo
-            $stmt = $pdo->prepare("UPDATE proyectos SET activo = FALSE WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE proyectos SET activo = 0 WHERE id = ?");
             $stmt->execute([$id]);
 
             $pdo->commit();

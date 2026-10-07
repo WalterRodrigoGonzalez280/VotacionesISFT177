@@ -2,7 +2,7 @@
 date_default_timezone_set('America/Argentina/Buenos_Aires');
 
 $host   = $_ENV['DB_HOST'] ?? 'db';           
-$puerto = $_ENV['DB_PORT'] ?? '3306';
+$puerto = $_ENV['DB_PORT'] ?? '5432';
 $usuario = $_ENV['DB_USER'] ?? 'votacion_user';
 $clave   = $_ENV['DB_PASS'] ?? 'develop2025';
 $base    = $_ENV['DB_NAME'] ?? 'votacion_db';
@@ -15,14 +15,19 @@ if (empty($host) || empty($usuario) || empty($base)) {
     exit;
 }
 
-$dsn = "mysql:host={$host};port={$puerto};dbname={$base};charset=utf8mb4";
+// Postgres no necesita charset en el DSN ni SET NAMES: el encoding se
+// negocia con el servidor y los dos quedan en UTF8 sin que nadie lo pida.
+// El `options` si hace falta, para el search_path: por defecto es
+// `"$user", public`, asi que si el usuario de la base se llamara `public` (o
+// existiera un schema con su nombre) las tablas se buscarian en el lugar
+// equivocado. Fijarlo a `public` hace que la busqueda no dependa del usuario.
+$dsn = "pgsql:host={$host};port={$puerto};dbname={$base};options='--search_path=public'";
 
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     PDO::ATTR_EMULATE_PREPARES   => false,
-    PDO::ATTR_TIMEOUT            => 10,
-    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+    PDO::ATTR_TIMEOUT            => 10
 ];
 
 /**
@@ -32,8 +37,8 @@ $options = [
  * probarla sin romper la base de verdad, y porque es la unica pagina del
  * sitio que no depende de la base: si no, no tendria ni de donde sacar el CSS.
  *
- * A la persona que esta usando el sitio no se le muestra NUNCA el error de
- * MySQL: dice el host, el puerto y a veces el usuario, y no le sirve de nada.
+ * A la persona que esta usando el sitio no se le muestra NUNCA el error de la
+ * base: dice el host, el puerto y a veces el usuario, y no le sirve de nada.
  * El detalle tecnico va al log. Antes ademas se diferenciaba por APP_ENV y en
  * desarrollo se imprimia el mensaje crudo; ahora es siempre el mismo texto.
  */
@@ -69,9 +74,42 @@ function paginaBaseCaida() {
 <?php
 }
 
+/**
+ * Pone la sesion en el horario de Argentina.
+ *
+ * Antes era `SET time_zone = '-03:00'`: un offset FIJO, que es el horario
+ * estandar de Argentina pero no el de verano. El pais aplica hora de verano
+ * (UTC-2) desde mediados de octubre a mediados de marzo, asi que durante esos
+ * meses un offset fijo deja la base una hora atras de la que ve el usuario, y
+ * no hay forma de que el propio dato avise: es una hora de diferencia, no un
+ * error. Con el NOMBRE de la zona, el servidor resuelve el offset solo y el
+ * cambio de horario pasa sin tocar una linea.
+ *
+ * El nombre solo funciona si las tablas de zona horaria de Postgres estan
+ * cargadas, y en la imagen `postgres:9.5.25-alpine` eso hay que pedirlo
+ * explicitamente con `apk add tzdata` (ver README, seccion "Zona horaria").
+ * Por eso la funcion falla en vez de asumir: si el servidor no conoce la zona,
+ * quien llama decide. Preferimos la zona con nombre y, si no esta, el respaldo
+ * es el offset fijo de antes.
+ *
+ * Importante: el fallback NO es un error de conexion, asi que va en su propio
+ * try. Si el `SET time_zone` se dejara caer en el catch de abajo, un problema
+ * de zona horaria tiraria el sitio entero con un 503, que es una falta
+ * desproporcionada para una hora de diferencia en un dato que casi nadie mira.
+ */
+function fijarZonaHoraria($pdo) {
+    $pdo->exec("SET TIME ZONE 'America/Argentina/Buenos_Aires'");
+}
+
 try {
     $pdo = new PDO($dsn, $usuario, $clave, $options);
-    $pdo->exec("SET time_zone = '-03:00'");
+
+    try {
+        fijarZonaHoraria($pdo);
+    } catch (PDOException $e) {
+        error_log('Zona horaria con nombre no disponible, se usa -03:00: ' . $e->getMessage());
+        $pdo->exec("SET TIME ZONE '-03:00'");
+    }
 
 } catch (PDOException $e) {
 

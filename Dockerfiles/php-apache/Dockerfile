@@ -1,15 +1,32 @@
 FROM php:7.4-apache
 
-# Extensiones que el proyecto necesita: mysqli (API legacy) y pdo_mysql
-# (conexion/conexion.php abre la conexión con PDO). Se conserva 'pdo' porque
-# así estaba originalmente.
+# Extensiones que el proyecto necesita: `pdo` (viene en la imagen, se deja) y
+# `pdo_pgsql`, que es la que usa conexion/conexion.php para abrir la conexión
+# con PDO contra Postgres.
 #
-# Nota: no se corre `apt-get`. La base php:7.4-apache es Debian 10 (buster),
-# que quedó EOL y fue retirado de deb.debian.org -> `apt-get update` falla con
-# exit code 100. Si alguna vez hace falta git, hay que apuntar sources.list a
-# archive.debian.org (ver README.md, sección "Build").
-RUN docker-php-ext-install -j"$(nproc)" mysqli pdo pdo_mysql \
- && rm -rf /var/tmp/*
+# `mysqli` y `pdo_mysql` se fueron con la migración a Postgres: no los usaba
+# nadie. Un grep del proyecto entero no encuentra un solo `mysqli`, y todo el
+# SQL pasa por PDO, asi que eran dos lineas de build que compilan una libreria
+# para nada.
+#
+# pdo_pgsql compila contra libpq, que no viene en la imagen. La base
+# php:7.4-apache es Debian 10 (buster), EOL y RETIRADO de deb.debian.org, asi
+# que cualquier `apt-get update` falla con exit code 100 (ver README, seccion
+# "Build"). La salida es apuntar sources.list a archive.debian.org, que es
+# donde queda buster archived.
+#
+# Se reescribe sources.list entero en vez de sed: el contenido del archivo de
+# la imagen base cambia entre tags y esta forma no depende de eso. Solo va
+# `main`, porque libpq-dev esta ahi y `buster-updates` NO existe en
+# archive.debian.org: dejarla apuntando a un repo inexistente hace fallar el
+# update con 404 otra vez, que es el error que venia a impedir hacer esto.
+RUN set -eux; \
+    printf 'deb http://archive.debian.org/debian buster main\n' > /etc/apt/sources.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends libpq-dev; \
+    rm -rf /var/lib/apt/lists/*; \
+    docker-php-ext-install -j"$(nproc)" pdo pdo_pgsql; \
+    rm -rf /var/tmp/*
 
 # ---------------------------------------------------------------------------
 # OPcache

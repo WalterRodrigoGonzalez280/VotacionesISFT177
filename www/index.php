@@ -198,9 +198,9 @@ $titulo = 'Exposición de Proyectos ' . anioVotacion();
                     Modalidad
                 </h2>
                 <ol class="steps">
-                    <li class="steps__item">Un voto para los proyectos de <strong>1.º año</strong>.</li>
-                    <li class="steps__item">Un voto para los proyectos de <strong>2.º año</strong>.</li>
-                    <li class="steps__item">Un voto para los proyectos de <strong>3.º año</strong>.</li>
+                    <li class="steps__item"><span>Un voto para los proyectos de <strong>1.º año</strong>.</span></li>
+                    <li class="steps__item"><span>Un voto para los proyectos de <strong>2.º año</strong>.</span></li>
+                    <li class="steps__item"><span>Un voto para los proyectos de <strong>3.º año</strong>.</span></li>
                 </ol>
                 <p class="landing__note">
                     <svg class="icon icon--sm" aria-hidden="true"><use href="#i-info"></use></svg>

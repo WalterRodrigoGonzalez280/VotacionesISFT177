@@ -18,7 +18,7 @@ const STORAGE_KEY = 'isft177-tema';
 const RAIZ = document.documentElement;
 
 /** El tema que se esta mostrando ahora. */
-export function temaActual() {
+function temaActual() {
   return RAIZ.getAttribute('data-theme') || (mql.matches ? 'dark' : 'light');
 }
 

@@ -169,24 +169,6 @@
 
 .project[data-muted='true'] .project__name { color: var(--c-muted); }
 
-/* ---------- Mensajes ---------- */
-
-.messages { margin-block: var(--s-4); }
-.messages:empty { display: none; }
-
-.message {
-    display: flex;
-    align-items: center;
-    gap: var(--s-2);
-    padding: var(--s-3) var(--s-4);
-    border: 1px solid;
-    border-radius: var(--r-sm);
-    font-size: var(--fs-sm);
-}
-
-.message--success { background: var(--c-ok-bg);    border-color: var(--c-ok-line);    color: var(--c-ok-ink); }
-.message--error   { background: var(--c-danger-bg); border-color: var(--c-danger-line); color: var(--c-danger-ink); }
-
 /* ---------- Responsive ---------- */
 
 @media (min-width: 40rem) {

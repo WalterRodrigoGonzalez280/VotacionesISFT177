@@ -17,9 +17,6 @@
 
 const ENDPOINT = 'api.php';
 
-/** Se avisa con un role=status para que un lector de pantalla lo anuncie. */
-const messages = document.querySelector('[data-messages]');
-
 const dialog = document.querySelector('[data-confirm]');
 const projectName = document.querySelector('[data-confirm-proyecto]');
 const yearName = document.querySelector('[data-confirm-anio]');
@@ -27,15 +24,27 @@ const yearName = document.querySelector('[data-confirm-anio]');
 /** Voto pendiente de confirmar: lo guarda el boton que abrio el dialog. */
 let pendiente = null;
 
-/** Muestra un mensaje temporal. Reemplaza el contenido, no lo agrega. */
+/**
+ * Muestra un aviso con `window.alert`, igual que hace admin.js.
+ *
+ * Antes era un recuadro propio en una region `[data-messages]` que vivia en el
+ * flujo normal: el mensaje salia debajo de la lista de proyectos, que es lo
+ * unico que crece, y con muchas tarjetas quedaba enterrado fuera de pantalla.
+ * Y el `role="status"` tampoco anunciaba nada, porque `.messages:empty` dejaba
+ * la region en `display: none`, y a una region `aria-live` que no esta
+ * renderizada no la anuncia ningun lector de pantalla.
+ *
+ * Con `alert` los dos problemas se van y ademas tapa el `<dialog>` de
+ * confirmacion, que esta en el top layer y le gana a cualquier elemento de la
+ * pagina.
+ *
+ * `kind` queda solo para el prefijo: `alert` no se puede estilizar.
+ */
 function notify(text, kind = 'success') {
-  if (!messages) return;
-  messages.replaceChildren();
-  const p = document.createElement('p');
-  p.className = `message message--${kind}`;
-  p.textContent = text;
-  messages.append(p);
-  window.setTimeout(() => p.remove(), 4000);
+  // `data.message || data.error` deja `undefined` cuando la API no manda
+  // ninguno, y `alert(undefined)` muestra la palabra "undefined".
+  if (!text) return;
+  window.alert(kind === 'error' ? `Error: ${text}` : text);
 }
 
 /**
