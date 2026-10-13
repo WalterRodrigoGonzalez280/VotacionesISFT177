@@ -103,6 +103,7 @@ $titulo = 'Exposición de Proyectos ' . anioVotacion();
          hoja de @font-face: ver includes/fonts.php. -->
     <?php include __DIR__ . '/../includes/theme-inline.php'; ?>
     <?php include __DIR__ . '/../includes/fonts.php'; ?>
+    <?php include __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="../assets/css/base.css">
     <link rel="stylesheet" href="../assets/css/landing.css">
 </head>

@@ -510,6 +510,14 @@ atrapa. Escape lo cierra y devuelve el foco al botón, y un toque fuera también
 página. Se usan con `<svg class="icon"><use href="#i-luna"></use></svg>`. Cero
 emojis en toda la interfaz.
 
+### Favicon
+
+`www/includes/favicon.php` es un parcial que linkea
+`favicon-32.png` (pestaña) y `favicon-180.png` (`apple-touch-icon`) con rutas
+absolutas `/assets/Logo/...`, y se incluye en toda página con `<head>`. Los dos
+archivos existían pero nada los linkeaba, así que el navegador siempre caía a
+pedir `/favicon.ico`, que no existe, y un cambio de favicon no se llegaba a ver.
+
 ### Layout
 
 CSS mobile-first con `min-width`, Grid para lo 2D y Flexbox para lo de un eje, en
@@ -1002,7 +1010,7 @@ Dos falsos positivos conocidos, para no perseguirlos:
     ├── registro/           registro.php, registro_validar.php, activar.php, generar_token.php
     ├── phpMail/            PHPMailer 5.2.16 + enviar_correo.php
     ├── fonts/              Cinzel + Lato en woff2 (8 archivos), con OFL.txt
-    └── Logo/               logo 480 px para la web + 256 para el correo
+    └── Logo/               variantes 96-480 px (256 para el correo) y los favicons
 ```
 
 `dump/` era el datadir de MySQL, montada con `./dump/:/var/lib/mysql`. Desde la

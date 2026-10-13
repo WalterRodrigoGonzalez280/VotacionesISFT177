@@ -29,6 +29,7 @@ $tab_actual = isset($_GET['tab']) && isset($tabs[$_GET['tab']]) ? $_GET['tab'] :
          hoja de @font-face: ver includes/fonts.php. -->
     <?php include __DIR__ . '/../includes/theme-inline.php'; ?>
     <?php include __DIR__ . '/../includes/fonts.php'; ?>
+    <?php include __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="../assets/css/base.css">
     <link rel="stylesheet" href="../assets/css/admin.css">
 </head>

@@ -57,6 +57,7 @@ function paginaBaseCaida() {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>No pudimos conectar | ISFT 177</title>
     <link rel="stylesheet" href="<?= $base_css ?>/base.css">
+    <?php include __DIR__ . '/../includes/favicon.php'; ?>
 </head>
 <body>
     <main style="display:grid;place-items:center;min-block-size:100dvh;padding:var(--s-5)">
