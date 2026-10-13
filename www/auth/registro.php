@@ -47,7 +47,7 @@ $titulo = 'Crear una cuenta';
     <main class="auth__main" id="contenido">
         <div class="auth__card">
             <h1 class="auth__title"><?= htmlspecialchars($titulo) ?></h1>
-            <p class="auth__lead">Te enviamos un código de 4 dígitos para activar la cuenta.</p>
+            <p class="auth__lead">Te enviamos un código de 6 dígitos para activar la cuenta.</p>
 
             <?php if ($errores): ?>
                 <div class="alert alert--error" role="alert">

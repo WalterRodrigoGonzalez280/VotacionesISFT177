@@ -3,7 +3,7 @@
  * Pantalla de activacion Y de definicion de contrasena.
  *
  * Son el mismo formulario con una diferencia: si la cuenta tiene un token
- * pendiente hay que escribir el codigo de 4 digitos; si ya esta activa y solo
+ * pendiente hay que escribir el codigo de 6 digitos; si ya esta activa y solo
  * vino a cambiar la contrasena, el codigo no aplica y se pide solo la nueva.
  *
  * El flag `activo` NO servia para decidir esto. Antes la condicion era
@@ -39,7 +39,7 @@ $viejo_token = '';
 $viejo_password = '';
 $viejo_confirm = '';
 
-$stmt = $pdo->prepare('SELECT token, activo FROM usuarios WHERE email = ?');
+$stmt = $pdo->prepare('SELECT token, activo, token_expira_en, token_intentos, token_ultimo_envio FROM usuarios WHERE email = ?');
 $stmt->execute([$user_email]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -52,7 +52,16 @@ if (!$user) {
 /** Hay un codigo esperando que se ingrese. */
 $pide_codigo = ($user['token'] !== null && $user['token'] !== '');
 
+/** El codigo pendiente ya vencio: sin fecha de expiracion tambien cuenta. */
+$codigo_vencido = false;
 if ($pide_codigo) {
+    $codigo_vencido = $user['token_expira_en'] === null
+        || (int) strtotime($user['token_expira_en']) <= time();
+}
+
+if ($pide_codigo && $codigo_vencido) {
+    $info = 'El código expiró. Pedí uno nuevo.';
+} elseif ($pide_codigo) {
     $info = 'Ingresá el código que te enviamos por correo para confirmar la operación.';
 } elseif ((int)$user['activo'] === 1) {
     $info = 'Elegí tu contraseña nueva para seguir entrando con esta cuenta.';
@@ -70,16 +79,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $viejo_confirm = $_POST['confirm_password'] ?? '';
 
     if (isset($_POST['generar_token'])) {
-        // `=== true` es obligatorio: el string de error es truthy en PHP.
-        $resultado = generarNuevoToken($pdo, $user_email);
+        // Throttle de reenvio: si el ultimo codigo salio hace menos de
+        // 60 segundos no se manda otro.
+        $ultimo = $user['token_ultimo_envio'] !== null
+            ? strtotime($user['token_ultimo_envio'])
+            : false;
 
-        if ($resultado === true) {
-            $info = 'Te enviamos un código nuevo por correo.';
+        if ($ultimo !== false && (time() - $ultimo) < 60) {
+            $error = 'Esperá un minuto antes de pedir otro código.';
         } else {
-            $error = is_string($resultado) ? $resultado : 'No pudimos enviar el correo.';
+            // `=== true` es obligatorio: el string de error es truthy en PHP.
+            $resultado = generarNuevoToken($pdo, $user_email);
+
+            if ($resultado === true) {
+                $info = 'Te enviamos un código nuevo por correo.';
+            } else {
+                $error = is_string($resultado) ? $resultado : 'No pudimos enviar el correo.';
+            }
         }
 
-        $stmt = $pdo->prepare('SELECT token, activo FROM usuarios WHERE email = ?');
+        $stmt = $pdo->prepare('SELECT token, activo, token_expira_en, token_intentos, token_ultimo_envio FROM usuarios WHERE email = ?');
         $stmt->execute([$user_email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         $pide_codigo = ($user['token'] !== null && $user['token'] !== '');
@@ -95,18 +114,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($falta_codigo || $falta_password || $falta_confirm) {
             $error = 'Completá todos los campos pedidos.';
-        } elseif ($pide_codigo && !preg_match('/^\d{4}$/', $input_token)) {
-            $error = 'El código tiene 4 dígitos.';
+        } elseif ($pide_codigo && $codigo_vencido) {
+            // Sin fecha de expiracion o vencida: no se compara siquiera. El
+            // token NO se vacia a NULL (Enmienda T1): el formulario decide
+            // pedir o no codigo segun el token, y sin token quedaria solo la
+            // contraseña, que permitiria tomar la cuenta sin ningun codigo.
+            $error = 'El código expiró. Pedí uno nuevo.';
+        } elseif ($pide_codigo && !preg_match('/^\d{6}$/', $input_token)) {
+            $error = 'El código tiene 6 dígitos.';
         } elseif ($password !== $confirm) {
             $error = 'Las contraseñas no coinciden.';
         } elseif (!preg_match('/^(?=.*[A-Z])(?=.*\d).{6,}$/', $password)) {
             $error = 'La contraseña necesita al menos 6 caracteres, una mayúscula y un número.';
-        } elseif ($pide_codigo && $input_token !== $user['token']) {
-            $error = 'El código no es correcto. Revisá el correo.';
+        } elseif ($pide_codigo && !hash_equals((string) $user['token'], $input_token)) {
+            // Cada codigo incorrecto cuenta, en la BD y no en la sesion.
+            $intentos = (int) $user['token_intentos'] + 1;
+
+            try {
+                if ($intentos >= 5) {
+                    // Se invalida venciendo el codigo en el momento, sin
+                    // vaciarlo: mismo motivo del branch de arriba.
+                    $stmt = $pdo->prepare(
+                        'UPDATE usuarios SET token_expira_en = now(), token_intentos = 0 WHERE email = ?'
+                    );
+                    $stmt->execute([$user_email]);
+                    $error = 'Superaste los intentos permitidos. Pedí un código nuevo.';
+                } else {
+                    $stmt = $pdo->prepare('UPDATE usuarios SET token_intentos = ? WHERE email = ?');
+                    $stmt->execute([$intentos, $user_email]);
+                    $error = 'El código no es correcto. Revisá el correo.';
+                }
+            } catch (PDOException $e) {
+                error_log('Activación: no se pudo registrar el intento: ' . $e->getMessage());
+                $error = 'No pudimos registrar el intento. Intentá de nuevo.';
+            }
         } else {
             try {
+                // Unico camino que vacia el token: la operacion se completo.
                 $stmt = $pdo->prepare(
-                    'UPDATE usuarios SET password = ?, activo = 1, token = NULL WHERE email = ?'
+                    'UPDATE usuarios SET password = ?, activo = 1, token = NULL,
+                            token_expira_en = NULL, token_intentos = 0
+                       WHERE email = ?'
                 );
                 $stmt->execute([password_hash($password, PASSWORD_DEFAULT), $user_email]);
 
@@ -185,7 +233,7 @@ $repoblar = ($error !== '');
 
                 <?php if ($pide_codigo): ?>
                     <div class="field">
-                        <label class="field__label" for="token">Código de 4 dígitos</label>
+                        <label class="field__label" for="token">Código de 6 dígitos</label>
                         <input
                             class="field__input token-input"
                             type="text"
@@ -193,10 +241,10 @@ $repoblar = ($error !== '');
                             name="token"
                             inputmode="numeric"
                             data-digits-only
-                            pattern="\d{4}"
-                            maxlength="4"
+                            pattern="\d{6}"
+                            maxlength="6"
                             autocomplete="one-time-code"
-                            placeholder="0000"
+                            placeholder="000000"
                             value="<?= $repoblar ? htmlspecialchars($viejo_token) : '' ?>"
                             required>
                     </div>

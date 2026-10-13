@@ -14,31 +14,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensaje = 'Ingresá el correo con el que te registraste.';
     } else {
         try {
-            $stmt = $pdo->prepare('SELECT id, activo FROM usuarios WHERE email = ?');
+            $stmt = $pdo->prepare('SELECT id, activo, token_ultimo_envio FROM usuarios WHERE email = ?');
             $stmt->execute([$email]);
             $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$usuario) {
                 $mensaje = 'No existe una cuenta asociada a ese correo.';
             } else {
-                // `=== true` es obligatorio: el string de error es truthy.
-                $resultado = generarNuevoToken($pdo, $email);
+                // Throttle de reenvio: si el ultimo codigo salio hace menos
+                // de 60 segundos no se manda otro. El mensaje no revela nada
+                // nuevo sobre la existencia del correo: la rama de arriba ya
+                // distingue el caso inexistente.
+                $ultimo = $usuario['token_ultimo_envio'] !== null
+                    ? strtotime($usuario['token_ultimo_envio'])
+                    : false;
 
-                if ($resultado === true) {
-                    $_SESSION['user_email'] = $email;
-
-                    $stmt = $pdo->prepare('SELECT token FROM usuarios WHERE email = ?');
-                    $stmt->execute([$email]);
-                    $fila = $stmt->fetch(PDO::FETCH_ASSOC);
-                    if ($fila) {
-                        $_SESSION['user_token'] = $fila['token'];
-                    }
-
-                    $tipo = 'ok';
-                    $mensaje = 'Te enviamos un código de 4 dígitos. Te llevamos a la pantalla de activación.';
-                    $destino = 'activar.php';
+                if ($ultimo !== false && (time() - $ultimo) < 60) {
+                    $mensaje = 'Esperá un minuto antes de pedir otro código.';
                 } else {
-                    $mensaje = is_string($resultado) ? $resultado : 'No pudimos enviar el correo.';
+                    // `=== true` es obligatorio: el string de error es truthy.
+                    $resultado = generarNuevoToken($pdo, $email);
+
+                    if ($resultado === true) {
+                        $_SESSION['user_email'] = $email;
+
+                        $stmt = $pdo->prepare('SELECT token FROM usuarios WHERE email = ?');
+                        $stmt->execute([$email]);
+                        $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+                        if ($fila) {
+                            $_SESSION['user_token'] = $fila['token'];
+                        }
+
+                        $tipo = 'ok';
+                        $mensaje = 'Te enviamos un código de 6 dígitos. Te llevamos a la pantalla de activación.';
+                        $destino = 'activar.php';
+                    } else {
+                        $mensaje = is_string($resultado) ? $resultado : 'No pudimos enviar el correo.';
+                    }
                 }
             }
         } catch (PDOException $e) {

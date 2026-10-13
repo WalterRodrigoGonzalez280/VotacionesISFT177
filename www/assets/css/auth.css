@@ -91,7 +91,7 @@
     text-align: center;
 }
 
-/* Codigo de 4 digitos */
+/* Codigo de 6 digitos */
 .token-input {
     text-align: center;
     font-size: var(--fs-xl);

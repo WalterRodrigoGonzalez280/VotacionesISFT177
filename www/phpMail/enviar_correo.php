@@ -140,7 +140,7 @@ function correoPaleta() {
  *
  * Devuelve `['html' => ..., 'texto' => ...]`.
  *
- * @param string $token     Codigo de 4 digitos.
+ * @param string $token     Codigo de 6 digitos.
  * @param string $sitioUrl  Origen del sitio (`email_config.SITE_URL`). Si
  *                          viene vacio el correo sale sin ningun link: es
  *                          opcional a proposito, asi el envio no depende de

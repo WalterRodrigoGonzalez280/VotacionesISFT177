@@ -8,6 +8,7 @@
  */
 session_start();
 require_once __DIR__ . '/../core/conexion.php';
+require_once __DIR__ . '/../core/generar_token.php';
 require_once __DIR__ . '/../phpMail/enviar_correo.php';
 require_once __DIR__ . '/../includes/flash.php';
 
@@ -59,7 +60,7 @@ try {
 
     /* ------------------------------------------------ generacion y envio */
 
-    $token = str_pad((string)rand(0, 9999), 4, '0', STR_PAD_LEFT);
+    $token = generarCodigoToken();
 
     // IMPORTANTE: `enviarTokenPorEmail` devuelve `true` o un STRING de error.
     // Un string no vacio es truthy, asi que hay que comparar con === true.
@@ -73,12 +74,27 @@ try {
     }
 
     if ($existente) {
-        // Cuenta sin activar: se le renueva el token.
-        $stmt = $pdo->prepare('UPDATE usuarios SET token = ? WHERE id = ?');
+        // Cuenta sin activar: se le renueva el token, con 15 minutos de vida
+        // y la marca de reenvio para el throttle (mismo esquema que
+        // generarNuevoToken en core/generar_token.php).
+        $stmt = $pdo->prepare(
+            "UPDATE usuarios
+                SET token = ?,
+                    token_expira_en = now() + interval '15 minutes',
+                    token_intentos = 0,
+                    token_ultimo_envio = now()
+              WHERE id = ?"
+        );
         $stmt->execute([$token, $existente['id']]);
     } else {
+        // El token va en el MISMO INSERT: jamas queda una cuenta inactiva
+        // sin token, que el formulario de activacion interpretaria como
+        // "no hace falta codigo" y dejaria definir la contraseña sin verificar
+        // nada. El envio se hizo arriba, asi que el orden email-antes-que-
+        // persistir se respeta.
         $stmt = $pdo->prepare(
-            'INSERT INTO usuarios (nombre, email, token, activo) VALUES (?, ?, ?, 0)'
+            "INSERT INTO usuarios (nombre, email, token, activo, token_expira_en, token_intentos, token_ultimo_envio)
+             VALUES (?, ?, ?, 0, now() + interval '15 minutes', 0, now())"
         );
         $stmt->execute([$usuario, $correo, $token]);
     }

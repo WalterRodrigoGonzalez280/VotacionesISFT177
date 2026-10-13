@@ -93,10 +93,10 @@ const RULES = {
     test: (value) => /^[\p{L}\p{N} .'_-]+$/u.test(value),
     message: () => 'El nombre solo puede tener letras, números, espacios y los signos . - _ \'.',
   },
-  /** 4 digitos exactos. */
-  digits4: {
-    test: (value) => /^\d{4}$/.test(value.trim()),
-    message: () => 'El código tiene 4 dígitos.',
+  /** 6 digitos exactos. */
+  digits6: {
+    test: (value) => /^\d{6}$/.test(value.trim()),
+    message: () => 'El código tiene 6 dígitos.',
   },
 };
 
@@ -122,7 +122,7 @@ const FORMS = new Map([
   }],
   ['activar', {
     fields: {
-      token: ['required', 'digits4'],
+      token: ['required', 'digits6'],
       password: ['required', 'password'],
       confirm_password: ['required', 'match'],
     },
@@ -180,9 +180,9 @@ document.addEventListener('input', (event) => {
   }
 });
 
-// Pega solo dígitos en el código de 4 dígitos.
+// Pega solo dígitos en el código de 6 dígitos.
 document.addEventListener('input', (event) => {
   const input = event.target;
   if (!input.matches?.('[data-digits-only]')) return;
-  input.value = input.value.replace(/\D/g, '').slice(0, 4);
+  input.value = input.value.replace(/\D/g, '').slice(0, 6);
 });

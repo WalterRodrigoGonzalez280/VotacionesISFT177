@@ -15,7 +15,7 @@ require_once __DIR__ . '/../phpMail/enviar_correo.php';
  */
 function generarNuevoToken($pdo, $correo)
 {
-    $token = str_pad((string) rand(0, 9999), 4, '0', STR_PAD_LEFT);
+    $token = generarCodigoToken();
 
     // 1) enviar primero
     $envio = enviarTokenPorEmail($correo, $token);
@@ -25,9 +25,18 @@ function generarNuevoToken($pdo, $correo)
         return is_string($envio) ? $envio : 'No se pudo enviar el correo.';
     }
 
-    // 2) solo si salio bien, guardar el token nuevo
+    // 2) solo si salio bien, guardar el token nuevo con su vencimiento
+    //    (15 minutos), sin intentos y con la marca de reenvio para el
+    //    throttle de 60 segundos.
     try {
-        $stmt = $pdo->prepare('UPDATE usuarios SET token = ? WHERE email = ?');
+        $stmt = $pdo->prepare(
+            "UPDATE usuarios
+                SET token = ?,
+                    token_expira_en = now() + interval '15 minutes',
+                    token_intentos = 0,
+                    token_ultimo_envio = now()
+              WHERE email = ?"
+        );
         $stmt->execute([$token, $correo]);
 
         if ($stmt->rowCount() === 0) {
@@ -46,18 +55,17 @@ function generarNuevoToken($pdo, $correo)
     }
 }
 
-/** El token guardado coincide con el que se ingreso. */
-function validarToken($pdo, $correo, $token)
+/**
+ * El codigo de activacion: 6 digitos con relleno de ceros.
+ *
+ * random_int es CSPRNG. rand()/mt_rand() son predecibles, y con solo 10^6
+ * combinaciones alcanza con observar unos cuantos numeros para predecir el
+ * siguiente. Es una funcion aparte para que registro_validar.php use el
+ * mismo generador sin repetir la logica.
+ */
+function generarCodigoToken()
 {
-    try {
-        $stmt = $pdo->prepare('SELECT token FROM usuarios WHERE email = ? AND token = ? LIMIT 1');
-        $stmt->execute([$correo, $token]);
-
-        return $stmt->rowCount() > 0;
-    } catch (PDOException $e) {
-        error_log('Validar token: ' . $e->getMessage());
-        return false;
-    }
+    return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 }
 
 /**

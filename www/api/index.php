@@ -165,7 +165,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     // ACCIÓN: OBTENER RESULTADOS (para usuarios)
     if ($_POST['action'] === 'obtener_resultados') {
-        $usuario_id = isset($_SESSION['usuario_id']) ? (int)$_SESSION['usuario_id'] : null;
+        // Mismo guard que verificar_usuario: sin sesión no hay ni filtrado de
+        // "usuario_voto" posible, y los conteos al vivo no se sirven a anónimos.
+        if (!isset($_SESSION['usuario_id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Sesión no válida']);
+            exit;
+        }
+
+        $usuario_id = (int)$_SESSION['usuario_id'];
+
+        // Mismo mecanismo que la acción `votar`: se lee la ventana activa de
+        // configuracion_votacion y se compara con ahora. Sin configuración la
+        // votación se considera abierta (igual que `votar`, que no filtra nada).
+        $votacion_abierta = true;
+        try {
+            $stmt = $pdo->prepare("SELECT inicio_votacion, fin_votacion FROM configuracion_votacion WHERE activo = 1 ORDER BY id DESC LIMIT 1");
+            $stmt->execute();
+            $configuracion = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($configuracion) {
+                $ahora = new DateTime();
+                $inicio = new DateTime($configuracion['inicio_votacion']);
+                $fin = new DateTime($configuracion['fin_votacion']);
+
+                if ($ahora < $inicio || $ahora > $fin) {
+                    $votacion_abierta = false;
+                }
+            }
+        } catch (PDOException $e) {
+            // Con la ventana desconocida se trata como abierta: si no, un
+            // error de esta consulta filtraría los conteos a todo el mundo.
+            error_log("Error verificando horario de votación: " . $e->getMessage());
+        }
+
+        // Los conteos en vivo solo se devuelven al admin (esAdmin) o con la
+        // votación cerrada: verlos mientras se vota sesga a quien llega después.
+        $ver_conteos = esAdmin() || !$votacion_abierta;
 
         try {
             $stmt = $pdo->prepare("
@@ -182,6 +218,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             ");
             $stmt->execute([$usuario_id]);
             $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // La clave votos se mantiene (en null) para no romper la forma
+            // de la respuesta: cambia el dato, no el esquema.
+            if (!$ver_conteos) {
+                foreach ($resultados as $i => $fila) {
+                    $resultados[$i]['votos'] = null;
+                }
+            }
 
             echo json_encode(['success' => true, 'resultados' => $resultados]);
         } catch (PDOException $e) {

@@ -226,7 +226,7 @@ $titulo = 'Exposición de Proyectos ' . anioVotacion();
                     <li class="howto__step">
                         <svg class="icon icon--lg howto__icon" aria-hidden="true"><use href="#i-enviar"></use></svg>
                         <h3 class="howto__title">Activá la cuenta</h3>
-                        <p class="howto__text">Te enviamos un código de 4 dígitos por correo.</p>
+                        <p class="howto__text">Te enviamos un código de 6 dígitos por correo.</p>
                     </li>
                     <li class="howto__step">
                         <svg class="icon icon--lg howto__icon" aria-hidden="true"><use href="#i-urna"></use></svg>
