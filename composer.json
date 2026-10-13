@@ -1,0 +1,21 @@
+{
+    "name": "isft177/votacion",
+    "description": "Sistema de votación de proyectos - ISFT 177",
+    "type": "project",
+    "require": {
+        "php": ">=8.4",
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
+    },
+    "autoload": {
+        "files": [
+            "www/core/conexion.php"
+        ]
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

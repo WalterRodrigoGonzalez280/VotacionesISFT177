@@ -1,7 +1,15 @@
 <?php
-require_once __DIR__ . '/class.smtp.php';
-require_once __DIR__ . '/class.pop3.php';
-require_once __DIR__ . '/class.phpmailer.php';
+/**
+ * Envío de correo de activación usando PHPMailer 6.9+ via Composer.
+ *
+ * Requiere: composer require phpmailer/phpmailer ^6.9
+ * El autoloader se carga desde la raíz del proyecto (vendor/autoload.php).
+ */
+
+require_once __DIR__ . '/../../vendor/autoload.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 /**
  * Unico mensaje de fallo que ve la persona que se registra.
@@ -67,12 +75,12 @@ function enviarTokenPorEmail($correo, $token) {
 
     try {
         $mail->isSMTP();
-        $mail->Host = $config['MAIL_HOST'] ?? 'smtp.gmail.com';
-        $mail->SMTPAuth = true;
-        $mail->Username = $config['MAIL_USERNAME'];
-        $mail->Password = $config['MAIL_PASSWORD'];
+        $mail->Host       = $config['MAIL_HOST'] ?? 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = $config['MAIL_USERNAME'];
+        $mail->Password   = $config['MAIL_PASSWORD'];
         $mail->SMTPSecure = $config['MAIL_ENCRYPTION'] ?? 'tls';
-        $mail->Port = (int)($config['MAIL_PORT'] ?? 587);
+        $mail->Port       = (int)($config['MAIL_PORT'] ?? 587);
 
         $mail->CharSet = 'UTF-8';
         $mail->setFrom(
@@ -196,27 +204,27 @@ function plantillaActivacion($token, $sitioUrl, $conLogo) {
         $boton = <<<HTML
               <table role="presentation" cellpadding="0" cellspacing="0" border="0"
                      style="margin:0 auto;border-collapse:separate;">
-                <tr>
-                  <td align="center" bgcolor="{$gold}"
-                      style="background-color:{$gold};border:1px solid {$goldTexto};
-                             border-radius:999px;box-shadow:0 1px 2px rgba(60,50,20,0.08);
-                             mso-padding-alt:14px 32px;">
-                    <a href="{$url}" target="_blank"
-                       style="display:inline-block;padding:14px 32px;
-                              font-family:'Lato',-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
-                              font-size:15px;font-weight:700;line-height:1.2;
-                              color:{$onGold};text-decoration:none;">
-                      Activar mi cuenta
-                    </a>
-                  </td>
-                </tr>
-              </table>
-              <!-- URL suelta abajo del boton: si el cliente no arma el boton,
-                   el link sigue siendo legible y copiable. -->
-              <p style="margin:10px 0 0;font-size:12px;line-height:1.5;
-                        text-align:center;word-break:break-all;color:{$muted};">
-                {$url}
-              </p>
+                 <tr>
+                   <td align="center" bgcolor="{$gold}"
+                       style="background-color:{$gold};border:1px solid {$goldTexto};
+                              border-radius:999px;box-shadow:0 1px 2px rgba(60,50,20,0.08);
+                              mso-padding-alt:14px 32px;">
+                     <a href="{$url}" target="_blank"
+                        style="display:inline-block;padding:14px 32px;
+                               font-family:'Lato',-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+                               font-size:15px;font-weight:700;line-height:1.2;
+                               color:{$onGold};text-decoration:none;">
+                       Activar mi cuenta
+                     </a>
+                   </td>
+                 </tr>
+               </table>
+               <!-- URL suelta abajo del boton: si el cliente no arma el boton,
+                    el link sigue siendo legible y copiable. -->
+               <p style="margin:10px 0 0;font-size:12px;line-height:1.5;
+                         text-align:center;word-break:break-all;color:{$muted};">
+                 {$url}
+               </p>
 HTML;
     }
 
@@ -330,8 +338,8 @@ HTML;
                         border:1px solid {$warnLine};border-left:3px solid {$warnLine};
                         border-radius:6px;font-size:13px;line-height:1.6;
                         color:{$warnInk};">
-              Si no pediste esto, ignor&aacute; este mensaje. La cuenta no queda
-              activa hasta que se ingrese el c&oacute;digo.
+                  Si no pediste esto, ignor&aacute; este mensaje. La cuenta no queda
+                  activa hasta que se ingrese el c&oacute;digo.
             </div>
 
           </td>
@@ -340,7 +348,7 @@ HTML;
         <!-- Pie -->
         <tr>
           <td class="pad" style="padding:20px 8px 0;font-size:12px;line-height:1.6;
-                                 text-align:center;color:{$muted};">
+                               text-align:center;color:{$muted};">
             Recibiste este correo porque pediste crear una cuenta en
             Votaci&oacute;n de Proyectos.<br>
             ISFT N&deg; 177 &middot; Exposici&oacute;n de proyectos de

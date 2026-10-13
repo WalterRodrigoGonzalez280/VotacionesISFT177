@@ -27,10 +27,49 @@
 -- expiración seteada.
 -- =============================================================================
 
+-- Por que bloques DO y no ADD COLUMN IF NOT EXISTS: esa forma recién llegó en
+-- PostgreSQL 9.6, y esta imagen es postgres:9.5.25-alpine (ver
+-- Dockerfiles/postgres/Dockerfile). En 9.5 el `IF NOT EXISTS` de ADD COLUMN no
+-- parsea y falla con "syntax error at or near NOT". La variante idempotente
+-- compatible con 9.5 es chequear information_schema.columns antes de agregar.
+
 ALTER TABLE usuarios ALTER COLUMN token TYPE varchar(6);
 
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS token_expira_en timestamptz;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+      FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND table_name  = 'usuarios'
+       AND column_name = 'token_expira_en'
+  ) THEN
+    ALTER TABLE usuarios ADD COLUMN token_expira_en timestamptz;
+  END IF;
+END $$;
 
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS token_intentos smallint NOT NULL DEFAULT 0;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+      FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND table_name  = 'usuarios'
+       AND column_name = 'token_intentos'
+  ) THEN
+    ALTER TABLE usuarios ADD COLUMN token_intentos smallint NOT NULL DEFAULT 0;
+  END IF;
+END $$;
 
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS token_ultimo_envio timestamptz;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+      FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND table_name  = 'usuarios'
+       AND column_name = 'token_ultimo_envio'
+  ) THEN
+    ALTER TABLE usuarios ADD COLUMN token_ultimo_envio timestamptz;
+  END IF;
+END $$;
