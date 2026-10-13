@@ -1,0 +1,1401 @@
+/* ==========================================================================
+   base.css - la capa compartida completa
+   ==========================================================================
+
+   Este archivo es la concatenacion de las hojas que TODAS las paginas
+   cargaban juntas: tokens, components, icons, theme-toggle y nav. Cada pagina
+   las enlazaba por separado y siempre todas juntas, asi que la separacion no
+   compraba nada y si costaba: en HTTP/1.1 el navegador abre 6 conexiones y los
+   pedidos se encolan, de modo que la ULTIMA hoja de estilos era la que fijaba
+   el primer pintado. Medido con throttling real de DevTools (NO simulado), 3
+   corridas por lado, sobre index.php:
+
+       5 hojas sueltas    FCP 2,50 / 3,00 / 2,60 s   -> mediana 2,60 s
+       base.css unico    FCP 2,10 / 2,20 / 2,10 s   -> mediana 2,10 s
+
+   O sea 0,5 s, y no por bytes (las hojas pesan 38 KB en total) sino por la
+   vuelta de red de cada pedido. El orden de las secciones es el que tenian.
+
+   Ojo con el metodo: con una sola corrida por lado la diferencia parecia de
+   1,0 s. Con tres, es 0,5 s. Y hay otro detalle que aparecio siempre: el
+   `backdrop-filter` del header NO se nota en las metricas (ver el comentario
+   de .sitebar mas abajo).
+
+   Lo que queda aparte es lo que es de una sola pagina: landing, auth,
+   votacion, admin y closing. Cada pagina carga base.css mas la suya, o solo
+   base.css cuando no tiene CSS propio. Las @font-face van aparte en
+   fonts.css, y el comentario de ese archivo explica por que.
+
+   Para agregar algo compartido va ACA, en la seccion que corresponda; para
+   algo de una pagina, en el archivo de esa pagina.
+   ========================================================================== */
+
+/* ==========================================================================
+   tokens.css  (fusionado en base.css)
+   ========================================================================== */
+
+/* ==========================================================================
+   tokens.css - sistema de diseno del ISFT 177
+   ==========================================================================
+
+   TEMA CLARO Y OSCURO.
+
+   La paleta de marca no cambia: dorado #D4A73E, dorado oscuro #A67C2E, crema
+   #F5F0B5. Lo que cambia es sobre que superficie se aplican y que tono de
+   dorado se usa COMO TEXTO.
+
+   El dorado de marca NO sirve como texto sobre claro: da 2,10:1 sobre el
+   fondo hueso. En modo claro los titulares usan un dorado oscurecido
+   (#8A6622, 4,93:1). En modo oscuro el dorado puro da 8,70:1 sobre el negro,
+   asi que ahi si se usa tal cual.
+
+   El boton dorado mantiene el color puro en los dos temas, con texto negro:
+   8,70:1 en ambos casos.
+
+   COMO SE ELIGE EL TEMA
+     1. sin preferencia guardada -> el del sistema (prefers-color-scheme)
+     2. con preferencia guardada -> el que eligio la persona
+   Se implementa con [data-theme] en <html> mas el fallback de la media query.
+   El atributo lo escribe www/js/theme.js antes de pintar, para evitar el
+   destello de tema equivocado al cargar.
+
+   Mobile-first: el layout base es el de pantalla angosta, las media queries
+   usan min-width.
+   ========================================================================== */
+
+/* ==========================================================================
+   Tokens geometricos (independientes del tema)
+   ========================================================================== */
+
+:root {
+    --s-1: 0.25rem;
+    --s-2: 0.5rem;
+    --s-3: 0.75rem;
+    --s-4: 1rem;
+    --s-5: 1.5rem;
+    --s-6: 2rem;
+    --s-7: 3rem;
+    --s-8: 4rem;
+
+    --r-sm:   0.375rem;
+    --r-md:   0.75rem;
+    --r-lg:   1.25rem;
+    --r-pill: 62.4375rem;
+
+    /* Escala tipográfica. Todo el sitio (las 6 hojas) saca sus font-size de
+       acá: no hay ni un tamaño suelto. Subir la lectura de a sala una vez por
+       acá, no archivo por archivo.
+
+       Escala ~15% sobre la anterior: 12/14/16 -> 14/16/18px. Los clamp()
+       mantienen la forma de la original (el preferred quieto, los extremos
+       proporcionalmente mas abiertos) para que la tipografia siga creciendo
+       con el viewport en vez de pegarse a un tope. */
+    --fs-xs:   0.875rem;  /* 14px */
+    --fs-sm:   1rem;      /* 16px: el cuerpo de los .btn */
+    --fs-base: 1.125rem;  /* 18px */
+    --fs-md:   clamp(1.21rem, 1.14rem + 0.35vw, 1.32rem);
+    --fs-lg:   clamp(1.38rem, 1.27rem + 0.58vw, 1.61rem);
+    --fs-xl:   clamp(1.67rem, 1.44rem + 1.15vw, 2.19rem);
+    --fs-2xl:  clamp(2.3rem, 1.61rem + 3.45vw, 3.68rem);
+    --lh-tight: 1.15;
+    --lh-body:  1.65;
+
+    --t-fast: 140ms ease;
+    --wrap: 68rem;
+}
+
+/* ==========================================================================
+   TEMA CLARO (por defecto)
+   ========================================================================== */
+
+:root,
+:root[data-theme='light'] {
+    color-scheme: light;
+
+    /* Marca: el dorado puro se reserva para superficies (botones). */
+    --c-gold:      #d4a73e;   /* botones, bordes, iconos sobre oscuro */
+    --c-gold-text: #8a6622;   /* dorado como TEXTO: 4,93:1 sobre el fondo */
+    --c-gold-dark: #a67c2e;   /* hover de botones */
+    --c-gold-soft: #6b4a16;   /* hover/enlaces/badge-warning: 5,12:1 sobre surface-2 (AA 14px+) */
+    --c-gold-hover: #6b4a16;  /* hover de enlace: 5,12:1 */
+
+    /* Azul institucional (del escudo) */
+    --c-navy:      #1b2a4a;   /* texto/borde institucional */
+    --c-navy-tint: rgb(27 42 74 / 0.10);  /* fondo sutil institucional */
+    /* Superficies */
+    --c-bg:        #faf8f0;   /* hueso */
+    --c-surface:   #ffffff;
+    --c-surface-2: #f2eee1;   /* hundido: inputs, cabeceras */
+    --c-surface-3: #e9e3d0;   /* hover sobre superficie */
+
+    /* Texto — escala unificada */
+    --c-text:           #1a1a1a;   /* principal: 16.3:1 sobre fondo */
+    --c-text-muted:     #5c574d;   /* secundario: 6.75:1 */
+    --c-text-placeholder: #6f6a5e; /* placeholder: 4.5:1 */
+    --c-text-brand:     #8a6622;   /* dorado titulares/marca: 4.93:1 */
+    --c-text-accent:    #6b4a16;   /* dorado hover/enlaces: 5.12:1 (AA 14px+) */
+    --c-text-on-primary: #0d0d0d;  /* sobre botón dorado: 8.7:1 */
+
+    /* Bordes */
+    --c-line:        rgb(138 102 34 / 0.20);
+    --c-line-strong: rgb(138 102 34 / 0.42);
+    --c-line-gold:   #a67c2e;
+
+    /* Borde de controles (inputs/selects). WCAG 1.4.11 pide 3:1 en el limite
+       que identifica al componente: --c-line queda en 1,31:1 sobre la
+       superficie, asi que el campo era practicamente invisible sin el
+       relleno. Decorativos (tablas, separadores, cards) siguen en --c-line. */
+    --c-line-control: #9b7d41;
+
+    /* Estados, sobre claro */
+    --c-ok:        #2f7d4f;
+    --c-ok-bg:     #e3efe6;
+    --c-ok-line:   #b7d8c2;
+    --c-ok-ink:    #1f5133;
+
+    --c-danger:      #b23a2e;
+    --c-danger-bg:   #f9e8e6;
+    --c-danger-line: #e8c0ba;
+    --c-danger-ink:  #8a2119;
+
+    --c-info:      #2f6f8f;
+    --c-info-bg:   #e4eef3;
+    --c-info-line: #bed8e3;
+    --c-info-ink:  #1e4a61;
+
+    --c-warn-bg:   #fbf3dd;
+    --c-warn-line: #e3cf9a;
+    --c-warn-ink:  #7c5b1c;
+
+    /* Veladuras: en claro el overlay tiene que ser oscuro para leerse */
+    --c-halo:        rgb(212 167 62 / 0.22);   /* aura dorada de fondo */
+    --c-gold-wash:   rgb(212 167 62 / 0.14);   /* lavado dorado suave */
+    --c-gold-tint:   rgb(212 167 62 / 0.10);   /* fondo de hover/badge */
+    --c-backdrop:    rgb(26 26 26 / 0.45);
+
+    /* Superficie crema (honor) — usa la escala unificada */
+    --c-cream:           #f5f0b5;
+    --c-text-on-cream:   var(--c-text);
+    --c-text-muted-on-cream: var(--c-text-muted);
+
+    /* Sombras: en claro la sombra si se ve, en oscuro casi no */
+    --sh-1: 0 1px 2px rgb(60 50 20 / 0.12);
+    --sh-2: 0 1px 3px rgb(60 50 20 / 0.14), 0 8px 24px rgb(60 50 20 / 0.10);
+    --sh-3: 0 4px 12px rgb(60 50 20 / 0.16), 0 16px 40px rgb(60 50 20 / 0.12);
+}
+
+/* ==========================================================================
+   TEMA OSCURO
+   ========================================================================== */
+
+:root[data-theme='dark'] {
+    color-scheme: dark;
+
+    --c-gold:      #d4a73e;
+    --c-gold-text: #d4a73e;   /* aca el puro si llega: 8,70:1 sobre negro */
+    --c-gold-dark: #a67c2e;
+    --c-gold-soft: #e8c97a;
+    --c-gold-hover: #e8c97a;  /* en oscuro el hover aclara */
+
+    /* Azul institucional (del escudo) */
+    --c-navy:      #6aa9c9;   /* en oscuro usa el tono info para contraste */
+    --c-navy-tint: rgb(106 169 201 / 0.15);  /* fondo sutil institucional */
+
+    --c-bg:        #0a0a0a;       /* negro suave, menos duro que #000 */
+    --c-surface:   #161616;       /* tarjetas: un peldaño arriba del bg */
+    --c-surface-2: #1e1e1e;       /* inputs/cabeceras: visible sobre surface */
+    --c-surface-3: #2a2a2a;       /* hover: sutil elevación */
+
+    /* Texto — escala unificada */
+    --c-text:           #ffffff;      /* principal: 21:1 */
+    --c-text-muted:     #b3b3b3;      /* secundario: 8.5:1 — menos "brillante" */
+    --c-text-placeholder: #7a7a7a;    /* placeholder: 4.8:1 */
+    --c-text-brand:     #d4a73e;      /* dorado titulares/marca: 8.7:1 */
+    --c-text-accent:    #e8c97a;      /* dorado hover/enlaces: 10.2:1 */
+    --c-text-on-primary: #0d0d0d;     /* sobre botón dorado: 21:1 */
+
+    /* Bordes: neutros con toque dorado muy sutil */
+    --c-line:        rgb(255 255 255 / 0.08);      /* bordes decorativos */
+    --c-line-strong: rgb(255 255 255 / 0.15);      /* bordes de foco/activo */
+    --c-line-gold:   var(--c-gold-dark);            /* acentos de marca */
+    --c-line-control: #4a4a4a;   /* 3.2:1 sobre surface-2 — inputs visibles */
+
+    --c-ok:        #4caf7d;
+    --c-ok-bg:     #0d1f14;
+    --c-ok-line:   #1a3a26;
+    --c-ok-ink:    #7fd6a5;
+
+    --c-danger:      #e05a4a;
+    --c-danger-bg:   #1f0d0c;
+    --c-danger-line: #3a1a18;
+    --c-danger-ink:  #f0938a;
+
+    --c-info:      #6aa9c9;
+    --c-info-bg:   #0c1a24;
+    --c-info-line:   #162d3e;
+    --c-info-ink:  #9fd0e6;
+
+    --c-warn-bg:   #1a140a;
+    --c-warn-line:   #332814;
+    --c-warn-ink:  #e8c97a;
+
+    --c-halo:        rgb(212 167 62 / 0.12);
+    --c-gold-wash:   rgb(212 167 62 / 0.10);
+    --c-gold-tint:   rgb(212 167 62 / 0.06);
+    --c-backdrop:    rgb(0 0 0 / 0.75);
+
+    /* Superficie crema (honor) — usa la escala unificada */
+    --c-cream:           #f5f0b5;
+    --c-text-on-cream:   #1a1a1a;
+    --c-text-muted-on-cream: #6b5a20;
+
+    --sh-1: 0 1px 2px rgb(0 0 0 / 0.40);
+    --sh-2: 0 2px 6px rgb(0 0 0 / 0.45);
+    --sh-3: 0 8px 28px rgb(0 0 0 / 0.55);
+}
+
+/* Si no hay preferencia guardada, se sigue al del sistema. El :not evita que
+   una eleccion explicita en claro se pise con la preferencia del sistema. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+        color-scheme: dark;
+
+        --c-gold-text: #d4a73e;
+        --c-gold-dark: #a67c2e;
+        --c-gold-soft: #e8c97a;
+        --c-gold-hover: #e8c97a;
+
+        /* Azul institucional (del escudo) */
+        --c-navy:      #6aa9c9;   /* en oscuro usa el tono info para contraste */
+        --c-navy-tint: rgb(106 169 201 / 0.15);  /* fondo sutil institucional */
+
+        --c-bg:        #0a0a0a;
+        --c-surface:   #161616;
+        --c-surface-2: #1e1e1e;
+        --c-surface-3: #2a2a2a;
+
+        /* Texto — escala unificada */
+        --c-text:           #ffffff;
+        --c-text-muted:     #b3b3b3;
+        --c-text-placeholder: #7a7a7a;
+        --c-text-brand:     #d4a73e;
+        --c-text-accent:    #e8c97a;
+        --c-text-on-primary: #0d0d0d;
+
+        /* Bordes: neutros con toque dorado muy sutil */
+        --c-line:        rgb(255 255 255 / 0.08);
+        --c-line-strong: rgb(255 255 255 / 0.15);
+        --c-line-gold:   #a67c2e;
+        --c-line-control: #4a4a4a;
+
+        --c-ok:        #4caf7d;
+        --c-ok-bg:     #0d1f14;
+        --c-ok-line:   #1a3a26;
+        --c-ok-ink:    #7fd6a5;
+
+        --c-danger:      #e05a4a;
+        --c-danger-bg:   #1f0d0c;
+        --c-danger-line: #3a1a18;
+        --c-danger-ink:  #f0938a;
+
+        --c-info:      #6aa9c9;
+        --c-info-bg:   #0c1a24;
+        --c-info-line:   #162d3e;
+        --c-info-ink:  #9fd0e6;
+
+        --c-warn-bg:   #1a140a;
+        --c-warn-line:   #332814;
+        --c-warn-ink:  #e8c97a;
+
+        --c-halo:        rgb(212 167 62 / 0.12);
+        --c-gold-wash:   rgb(212 167 62 / 0.10);
+        --c-gold-tint:   rgb(212 167 62 / 0.06);
+        --c-backdrop:    rgb(0 0 0 / 0.75);
+
+        /* Superficie crema (honor) — usa la escala unificada */
+        --c-cream:           #f5f0b5;
+        --c-text-on-cream:   #1a1a1a;
+        --c-text-muted-on-cream: #6b5a20;
+
+        --sh-1: 0 1px 2px rgb(0 0 0 / 0.40);
+        --sh-2: 0 2px 6px rgb(0 0 0 / 0.45);
+        --sh-3: 0 8px 28px rgb(0 0 0 / 0.55);
+    }
+}
+
+/* ==========================================================================
+   Tipografia
+   ==========================================================================
+   Cinzel reemplaza a la gótica UnifrakturMaguntia: es una capitular romana
+   ("Roman inscriptional"), o sea la misma que se ve tallada en inscripciones
+   y escudos, pero se LEE. Mantiene el tono heraldico sin el costo de
+   legibilidad. Se usa solo en titular grande.
+   ========================================================================== */
+
+:root {
+    --font-display: 'Cinzel', 'Lato', Georgia, serif;
+    --font-sans: 'Lato', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ==========================================================================
+   Reset
+   ========================================================================== */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+* { margin: 0; }
+
+html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+}
+
+body {
+    min-block-size: 100dvh;
+    background: var(--c-bg);
+    color: var(--c-text-muted);
+    font-family: var(--font-sans);
+    font-size: var(--fs-base);
+    font-weight: 400;
+    line-height: var(--lh-body);
+    -webkit-font-smoothing: antialiased;
+    transition: background var(--t-fast), color var(--t-fast);
+}
+
+h1,
+h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    /* --c-text-brand cambia segun el tema: puro en oscuro, oscurecido en claro */
+    color: var(--c-text-brand);
+    line-height: var(--lh-tight);
+    letter-spacing: 0.01em;
+}
+
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    color: var(--c-text-brand);
+    line-height: var(--lh-tight);
+}
+
+h1 { font-size: var(--fs-2xl); }
+h2 { font-size: var(--fs-xl); }
+h3 { font-size: var(--fs-lg); }
+
+strong,
+b { color: var(--c-text); font-weight: 700; }
+
+a { color: var(--c-text-brand);
+     text-decoration: none;
+ }
+a:hover { color: var(--c-text-accent); }
+
+img,
+picture,
+svg { display: block; max-inline-size: 100%; }
+
+img { block-size: auto; }
+
+input,
+button,
+select,
+textarea { font: inherit; color: inherit; }
+
+button { cursor: pointer; }
+
+ul[class],
+ol[class] { list-style: none; padding: 0; }
+
+/* ==========================================================================
+   Accesibilidad
+   ========================================================================== */
+
+:focus-visible {
+    outline: 3px solid var(--c-text-brand);
+    outline-offset: 2px;
+    border-radius: var(--r-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
+        transition-duration: 0.01ms;
+        scroll-behavior: auto;
+    }
+}
+
+@media (prefers-contrast: more) {
+    :root {
+        --c-line: rgb(212 167 62 / 0.55);
+        --c-line-strong: rgb(212 167 62 / 0.8);
+    }
+    :root[data-theme='dark'] { --c-text-muted: #f2f2f2; }
+    :root[data-theme='light'] { --c-text-muted: #3a3730; }
+}
+
+.visually-hidden {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.skip-link {
+    position: absolute;
+    inset-block-start: var(--s-2);
+    inset-inline-start: var(--s-2);
+    z-index: 100;
+    padding: var(--s-2) var(--s-4);
+    background: var(--c-gold);
+    color: var(--c-text-on-primary);
+    border-radius: var(--r-sm);
+    text-decoration: none;
+    font-weight: 700;
+    transform: translateY(-200%);
+    transition: transform var(--t-fast);
+}
+
+.skip-link:focus-visible {
+    transform: translateY(0);
+    outline-color: var(--c-text-brand);
+}
+
+/* ==========================================================================
+   components.css  (fusionado en base.css)
+   ========================================================================== */
+
+/* ==========================================================================
+   components.css - primitivas visuales compartidas
+   ==========================================================================
+   Importar despues de tokens.css. Solo lo que usa mas de una pagina.
+   Tema oscuro: superficies carb, texto claro, borde dorado tenue.
+   ========================================================================== */
+
+/* ---------- Layout ---------- */
+
+.shell {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 100dvh;
+}
+
+.shell__main { flex: 1; }
+
+.wrap {
+    inline-size: min(100% - var(--s-5), var(--wrap));
+    margin-inline: auto;
+}
+
+/* `.wrap--narrow` y el token `--wrap-narrow` se borraron: 0 usos. El ancho
+   de columna se controla con `.wrap--wide`, que si se usa en 4 paginas. */
+
+/* La familia `.topbar` vivio aca hasta que el encabezado paso a `.sitebar`
+   (ver `.sitebar` mas abajo y site-header.php). Se borro entera porque ningun
+   markup la emitia ya: los selectoresNode-bold__brand, __logo, __name, __sub y
+   __actions daban 0 coincidencias en todos los .php y .js del proyecto. Sin
+   ellas se caia tambien el bloque `.topbar--center` de landing.css, que era
+   solo una variante de esta. */
+
+.foot {
+    padding-block: var(--s-5) var(--s-6);
+    border-block-start: 1px solid var(--c-line);
+    text-align: center;
+    color: var(--c-text-muted);
+    font-size: var(--fs-xs);
+}
+
+/* ---------- Botones ---------- */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s-2);
+    padding: 0.7em 1.5em;
+    border: 1px solid transparent;
+    border-radius: var(--r-pill);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration: none;
+    text-align: center;
+    transition: background var(--t-fast), border-color var(--t-fast),
+                color var(--t-fast), transform var(--t-fast);
+}
+
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+
+/* CTA: dorado suave en reposo, dorado lleno en hover */
+.btn--primary {
+    background: var(--c-gold-tint);   /* 10% dorado — visible pero no pesado */
+    color: var(--c-text-brand);       /* texto dorado */
+    border-color: var(--c-line-gold); /* borde dorado */
+    box-shadow: var(--sh-1);
+}
+.btn--primary:hover {
+    background: var(--c-gold);        /* dorado lleno */
+    border-color: var(--c-gold-dark);
+    color: #fff;                      /* texto blanco en hover */
+}
+
+.btn--secondary {
+    background: transparent;
+    color: var(--c-text-brand);
+    border-color: var(--c-line-strong);
+}
+.btn--secondary:hover {
+    background: var(--c-gold-tint);
+    border-color: var(--c-text-brand);
+    color: var(--c-text-accent);
+}
+
+.btn--ghost {
+    background: transparent;
+    color: var(--c-text-muted);
+    border-color: transparent;
+    padding-inline: var(--s-3);
+}
+.btn--ghost:hover {
+    color: var(--c-text-brand);
+    background: var(--c-gold-tint);
+}
+
+.btn--danger {
+    background: transparent;
+    color: var(--c-danger-ink);
+    border-color: var(--c-danger-line);
+}
+.btn--danger:hover { background: var(--c-danger-bg); border-color: var(--c-danger); }
+
+.btn--block { inline-size: 100%; }
+
+.btn--sm {
+    padding: 0.45em 1em;
+    font-size: var(--fs-xs);
+}
+
+/* Tamano de contacto. Con mouse (pointer: fine) queda compacto; con el dedo
+   (pointer: coarse) todo control baja a 44px, que es lo que recomiendan
+   Apple HIG y Material. min-block-size y no height: asi un boton de dos
+   lineas crece en vez de cortarse.
+
+   Antes el boton de votar usaba .btn--sm (25px de alto), o sea que la accion
+   principal de la pagina era el control mas chico. */
+@media (pointer: coarse) {
+    .btn,
+    .btn--sm,
+    .icon-btn,
+    .field__toggle,
+    .theme-toggle__btn,
+    .sitebar__burger,
+    .navlist__link {
+        min-block-size: 2.75rem;   /* 44px */
+    }
+
+    .btn--sm { padding-inline: 1.1em; }
+    .icon-btn { inline-size: 2.75rem; block-size: 2.75rem; }
+    .field__toggle { inline-size: 2.75rem; block-size: 2.75rem; }
+    .sitebar__burger { inline-size: 2.75rem; block-size: 2.75rem; }
+}
+
+/* ---------- Campos ---------- */
+
+.field { display: grid; gap: var(--s-2); }
+
+.field__label {
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    color: var(--c-text);
+}
+
+.field__hint {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-2);
+    font-size: var(--fs-xs);
+    color: var(--c-text-muted);
+}
+
+/* El line-height explicito es la misma correccion que ya aplicaba .btn: el
+   input heredaba el --lh-body del body (1.65), pensado para parrafos. Con
+   18px x 1.65 mas 0.7em de padding a cada lado daba 57px de alto, mas que
+   un boton primario (44px) y desproporcionado para un control tan liviano.
+
+   Con 1.35 y 0.55em queda 46px: sigue por encima del piso de contacto de
+   44px del @media (pointer: coarse), y el .field__toggle de 36px sigue
+   centrado con holgura. El font-size NO baja de 18px: en iOS Safari un
+   input de menos de 16px dispara el zoom automatico al enfocar. */
+.field__input {
+    inline-size: 100%;
+    padding: 0.55em 0.9em;
+    line-height: 1.35;
+    background: var(--c-surface-2);
+    color: var(--c-text);
+    border: 1px solid var(--c-line-control);
+    border-radius: var(--r-sm);
+    font-size: var(--fs-base);
+    transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.field__input::placeholder { color: var(--c-text-placeholder); }
+.field__input:hover { border-color: var(--c-text-brand); }
+
+.field__input:focus {
+    border-color: var(--c-text-brand);
+    box-shadow: 0 0 0 3px var(--c-gold-tint);
+    outline: none;
+}
+
+.field__input:focus-visible {
+    outline: 3px solid var(--c-gold);
+    outline-offset: 1px;
+}
+
+.field__input[aria-invalid='true'] { border-color: var(--c-danger); }
+
+/* Campo de contrasena con boton de mostrar/ocultar.
+
+   El boton va en una columna propia de la grilla, al lado del input, en vez de
+   posicionado con `absolute`. Con absolute se anclaba al .field--password
+   entero, y ese campo es mas alto cuando tiene algo mas adentro: en
+   registro/activar.php el primero lleva la lista .reqs de requisitos, y el ojo
+   caia 34px mas abajo, encima de la lista y sin tocar el campo. Medido, no es
+   teoria: el boton quedaba fuera del input.
+
+   Con la grilla el boton cae siempre sobre la fila del input, le meta lo que
+   le meta el campo debajo. El input ocupa las DOS columnas y el boton se
+   superpone en la segunda, asi que el ojo sigue quedandodentro del campo como
+   estaba: el padding de la derecha del input es el que le deja el hueco. */
+.field--password {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+}
+.field--password > .field__label { grid-column: 1 / -1; }
+.field--password > .field__input { grid-column: 1 / -1; grid-row: 2; padding-inline-end: 3.25rem; }
+.field--password > .field__toggle {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+    justify-self: end;
+    margin-inline-end: 0.3rem;
+}
+/* La lista de requisitos (o cualquier otra cosa) ocupa su propia fila. */
+.field--password > *:not(.field__label):not(.field__input):not(.field__toggle) {
+    grid-column: 1 / -1;
+}
+
+.field__toggle {
+    display: grid;
+    place-items: center;
+    inline-size: 2.25rem;
+    block-size: 2.25rem;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: var(--r-sm);
+    color: var(--c-text-muted);
+}
+.field__toggle:hover { background: var(--c-surface-3); color: var(--c-text-brand); }
+
+/* ---------- Tarjetas ---------- */
+
+.card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--r-md);
+    padding: var(--s-5);
+    box-shadow: var(--sh-2);
+}
+
+.card__title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin-block-end: var(--s-3);
+    padding-block-end: var(--s-2);
+    border-block-end: 1px solid var(--c-line-strong);
+}
+
+.card__title .icon { color: var(--c-text-accent); }
+
+.card__body > * + * { margin-block-start: var(--s-3); }
+
+/* ---------- Insignias de estado ---------- */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: 0.35em 1em;
+    border: 1px solid var(--c-line-strong);
+    border-radius: var(--r-pill);
+    background: var(--c-surface);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    color: var(--c-text);
+}
+
+.badge--lg { padding: 0.5em 1.3em; font-size: var(--fs-md); }
+
+/* El punto de estado (`.badge__dot`) se borro: el markup del badge es un <p>
+   sin elemento hijo, asi que las tres reglas que lo recoloreaban por estado
+   (`.badge--open/soon/closed .badge__dot`) no tenian a que aplicarse. Los
+   modificadores `.badge--open/soon/closed` se conservan: index.php los emite
+   por variable (`$estados[$estado]['clase']`), no como string literal. */
+
+.badge--open  { border-color: var(--c-ok-line);  color: var(--c-ok-ink);  background: var(--c-ok-bg); }
+
+.badge--soon  { border-color: var(--c-line-gold); color: var(--c-text-brand); }
+
+.badge--closed { border-color: var(--c-danger-line); color: var(--c-danger-ink); background: var(--c-danger-bg); }
+
+.tag {
+    display: inline-block;
+    padding: 0.15em 0.6em;
+    border-radius: var(--r-sm);
+    background: var(--c-gold-tint);
+    border: 1px solid var(--c-line-strong);
+    color: var(--c-text-accent);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+}
+
+/* ---------- Alertas ---------- */
+
+.alert {
+    display: flex;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    border: 1px solid;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-sm);
+    border-inline-start-width: 3px;
+}
+
+.alert--error { background: var(--c-danger-bg); border-color: var(--c-danger-line); color: var(--c-danger-ink); }
+/* `.alert--ok` se borro: 0 usos. Los avisos reales usan `--error` (index.php)
+   y `--info` (votacion.php). */
+.alert--info  { background: var(--c-info-bg);   border-color: var(--c-info-line);   color: var(--c-info-ink); }
+
+/* ---------- Lista de pasos ---------- */
+
+.steps { display: grid; gap: var(--s-3); counter-reset: step; }
+
+.steps__item {
+    display: flex;
+    gap: var(--s-3);
+    align-items: flex-start;
+    color: var(--c-text-muted);
+}
+
+/* La frase entera es UN solo flex item: sin esto, el <strong> es su propio
+   item, se achica hasta perder el ancho del texto y parte "1.º" de "año". */
+.steps__item > span { flex: 1 1 auto; min-inline-size: 0; }
+
+/* "1.º año" queda siempre en una sola línea aunque la columna sea angosta. */
+.steps__item strong { white-space: nowrap; }
+
+.steps__item::before {
+    counter-increment: step;
+    content: counter(step);
+    flex: none;
+    display: grid;
+    place-items: center;
+    inline-size: 1.75rem;
+    block-size: 1.75rem;
+    border-radius: 50%;
+    background: var(--c-gold);
+    color: var(--c-text-on-primary);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+}
+
+/* ---------- Dialog nativo ----------
+   Compartido por admin.php y votacion.php. Un <dialog> nativo da foco
+   atrapado, Escape y bloqueo del scroll de fondo sin una linea de JS. */
+
+.dialog {
+    inline-size: min(100% - var(--s-5), 26rem);
+    padding: 0;
+    background: var(--c-surface);
+    color: var(--c-text-muted);
+    border: 1px solid var(--c-line-strong);
+    border-radius: var(--r-md);
+    box-shadow: var(--sh-3);
+}
+
+.dialog::backdrop { background: var(--c-backdrop); }
+
+.dialog__form { display: grid; gap: var(--s-4); padding: var(--s-5); }
+.dialog__title { font-size: var(--fs-lg); }
+
+.dialog__actions { display: flex; gap: var(--s-2); justify-content: flex-end; }
+
+.dialog__text { color: var(--c-text-muted); font-size: var(--fs-sm); }
+.dialog__text strong { color: var(--c-text); }
+
+.dialog__warn {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-2);
+    padding: var(--s-2) var(--s-3);
+    background: var(--c-warn-bg);
+    border: 1px solid var(--c-warn-line);
+    border-radius: var(--r-sm);
+    color: var(--c-warn-ink);
+    font-size: var(--fs-xs);
+}
+
+
+.dialog__warn .icon { margin-block-start: 0.1em; flex: none; }
+
+
+/* ---------- Responsive ---------- */
+
+@media (min-width: 48rem) {
+    .card { padding: var(--s-6); }
+    .steps { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+}
+
+@media (min-width: 64rem) {
+    .wrap--wide { --wrap: 76rem; }
+}
+
+/* ==========================================================================
+   icons.css  (fusionado en base.css)
+   ========================================================================== */
+
+/* ==========================================================================
+   icons.css - estilos de los iconos SVG
+   ==========================================================================
+   Los <symbol> viven en includes/iconos.php. Cada pagina incluye el sprite
+   una vez y despues usa:
+     <svg class="icon" aria-hidden="true"><use href="#i-alerta"></use></svg>
+
+   Todos los iconos son decorativos: el texto que los rodea ya dice lo mismo,
+   asi que van con aria-hidden y no generan ruido en el lector de pantalla.
+   ========================================================================== */
+
+.icon {
+    inline-size: 1.15em;
+    block-size: 1.15em;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vertical-align: -0.18em;
+}
+
+.icon--sm { inline-size: 0.95em; block-size: 0.95em; }
+.icon--lg { inline-size: 1.6em;  block-size: 1.6em;  stroke-width: 1.7; }
+/* `.icon--xl` se borro: la escala en uso es --sm y --lg, --xl daba 0 usos. */
+
+/* El sprite se oculta sinSacarlo del flujo de lectura. */
+.sprite {
+    position: absolute;
+    inline-size: 0;
+    block-size: 0;
+    overflow: hidden;
+}
+
+/* Icono dentro de un boton de icono del panel. */
+.icon-btn .icon { inline-size: 1.05rem; block-size: 1.05rem; }
+
+/* Icono de la insignia de estado. */
+.badge .icon { stroke-width: 2.2; }
+
+/* ==========================================================================
+   Mensajes de validacion en linea
+   ==========================================================================
+   Se muestran pegados al campo, no como alert(). Asi no se pierde lo que la
+   persona ya habia escrito y se sabe exactamente que corregir.
+   ========================================================================== */
+
+.field__error {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-2);
+    margin-block-start: var(--s-1);
+    padding: var(--s-2) var(--s-3);
+    background: var(--c-danger-bg);
+    border: 1px solid var(--c-danger-line);
+    border-inline-start-width: 3px;
+    border-radius: var(--r-sm);
+    color: var(--c-danger-ink);
+    font-size: var(--fs-xs);
+    line-height: 1.4;
+}
+
+.field__error .icon { margin-block-start: 0.1em; }
+
+/* Transicion al aparecer, desactivada si pidio menos movimiento. */
+.field__error { animation: field-error-in 140ms ease-out; }
+
+@keyframes field-error-in {
+    from { opacity: 0; translate: 0 -0.25rem; }
+    to   { opacity: 1; translate: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .field__error { animation: none; }
+}
+
+/* Campo invalido: el borde se pone rojo pero NO se reemplaza el anillo de
+   foco, para que el teclado siga viendo donde esta. */
+.field__input[aria-invalid='true'] {
+    border-color: var(--c-danger);
+    background: var(--c-danger-bg);
+}
+
+/* ==========================================================================
+   theme-toggle.css  (fusionado en base.css)
+   ========================================================================== */
+
+/* ==========================================================================
+   theme-toggle.css - boton de tema claro / oscuro
+   ==========================================================================
+   Va flotante en la esquina, para poder incluirlo igual en las 9 paginas sin
+   tener que tocar el markup distinto de cada una. El orden de capas lo deja
+   por encima del contenido pero por debajo de .skip-link.
+   ========================================================================== */
+
+.theme-toggle {
+    position: fixed;
+    inset-block-start: var(--s-3);
+    inset-inline-end: var(--s-3);
+    z-index: 50;
+}
+
+.theme-toggle__btn {
+    display: grid;
+    place-items: center;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    padding: 0;
+    background: var(--c-surface);
+    color: var(--c-text-brand);
+    border: 1px solid var(--c-line-strong);
+    border-radius: 50%;
+    box-shadow: var(--sh-2);
+    transition: background var(--t-fast), border-color var(--t-fast),
+                transform var(--t-fast), color var(--t-fast);
+}
+
+.theme-toggle__btn:hover {
+    background: var(--c-surface-3);
+    border-color: var(--c-gold);
+    transform: scale(1.06);
+}
+
+.theme-toggle__btn .icon {
+    inline-size: 1.2rem;
+    block-size: 1.2rem;
+}
+
+/* En pantallas chicas se corre un poco para no tapar el logo. */
+@media (min-width: 40rem) {
+    .theme-toggle { inset-block-start: var(--s-4); inset-inline-end: var(--s-4); }
+}
+
+/* Impresion: siempre claro, y el boton no tiene sentido en papel. */
+@media print {
+    .theme-toggle { display: none; }
+}
+
+/* ==========================================================================
+   nav.css  (fusionado en base.css)
+   ========================================================================== */
+
+/* ==========================================================================
+   nav.css - encabezado con navegacion y pie de pagina
+   ==========================================================================
+   Reemplaza al .topbar y al .foot sueltos. Mobile-first: en pantallas
+   angostas la navegacion va plegada detras de un boton hamburguesa, y desde
+   48rem pasa a fila y el boton desaparece.
+   ========================================================================== */
+
+/* ==========================================================================
+   Encabezado
+   ========================================================================== */
+
+/* El fondo translucido con desenfoque estaba en todas partes y se sospecho que
+   en mobile costaba 800 ms de CPU. Al repetir el A/B con 3 corridas por lado (que
+   es como habria que haberlo hecho la primera vez) NO se comprobo: mediana
+   2,70 s con el desenfoque contra 2,60 s sin, con un rango de 2,40 a 3,10 en los
+   dos casos. O sea que dentro del ruido, y el efecto visual no vale la pena
+   perderlo. Queda como estaba. */
+.sitebar {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 40;
+    /* El primer background es el respaldo para el que no soporta color-mix: sin
+       el, ese navegador se queda con el header transparente. El segundo gana en
+       los demas. */
+    background: var(--c-bg);
+    /* Fondo semiopaco: al hacer scroll el contenido no se ve "a través". */
+    background: color-mix(in srgb, var(--c-bg) 92%, transparent);
+    border-block-end: 1px solid var(--c-line);
+    backdrop-filter: blur(8px);
+}
+
+/* Para el que no soporta backdrop-filter, el fondo opaco y listo. */
+@supports not (backdrop-filter: blur(1px)) {
+    .sitebar { background: var(--c-bg); }
+}
+
+.sitebar__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-3);
+    padding-block: var(--s-3);
+}
+
+/* ---------- Marca ---------- */
+
+.sitebar__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    text-decoration: none;
+    color: inherit;
+    margin-inline-end: auto;
+    min-inline-size: 0;
+}
+
+.sitebar__logo {
+    inline-size: 2.5rem;
+    flex: none;
+}
+
+.sitebar__text { display: grid; min-inline-size: 0; }
+
+.sitebar__title {
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    color: var(--c-text);
+    line-height: var(--lh-tight);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sitebar__sub {
+    font-size: var(--fs-xs);
+    color: var(--c-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---------- Boton hamburguesa ---------- */
+
+/* Mismo aspecto que el boton de tema, asi que se parecen a proposito; viven en
+   archivos distintos porque uno es flotante (auth) y este es parte del
+   encabezado. */
+
+.sitebar__burger { display: none; }
+
+.js .sitebar__burger {
+    display: grid;
+    place-items: center;
+    order: 2;
+    flex: none;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    padding: 0;
+    background: var(--c-surface);
+    color: var(--c-text-brand);
+    border: 1px solid var(--c-line-strong);
+    border-radius: 50%;
+    box-shadow: var(--sh-2);
+    transition: background var(--t-fast), border-color var(--t-fast),
+                color var(--t-fast);
+}
+
+.js .sitebar__burger:hover {
+    background: var(--c-surface-3);
+    border-color: var(--c-gold);
+    color: var(--c-text-accent);
+}
+
+/* Los dos iconos estan en el HTML y el que se ve lo elige el estado: sin JS
+   para que el cambio sea CSS y no una linea de mas en el modulo. */
+.sitebar__burger .icon { inline-size: 1.2rem; block-size: 1.2rem; }
+.sitebar__burger .icon--cerrar { display: none; }
+.sitebar__burger[aria-expanded='true'] .icon--menu { display: none; }
+.sitebar__burger[aria-expanded='true'] .icon--cerrar { display: block; }
+
+/* ---------- Panel: navegacion + sesion ---------- */
+
+/* Sin JS el panel se ve siempre: es la navegacion del sitio y no puede quedar
+   escondida detras de un control que no esta.
+
+   El gap va en s-4 y no en s-3: con s-3 el bloque de sesion (switch, nombre de
+   usuario y "Salir") queda a un pelo de los enlaces de navegacion, y en una
+   pantalla angosta los dos bloques se leen como una sola lista confusa. */
+.sitebar__panel {
+    order: 3;
+    inline-size: 100%;
+    display: grid;
+    gap: var(--s-4);
+    padding-block-start: var(--s-4);
+    border-block-start: 1px solid var(--c-line);
+}
+
+/* Con JS arranca plegado. La clase `js` la escribe el script inline del <head>
+   antes del primer pintado, asi que esto no aparece "abajo" y se pliega a la
+   vista: el CLS del menu es cero. */
+.js .sitebar__panel { display: none; }
+.js .sitebar__panel.is-open { display: grid; }
+
+/* ---------- Navegacion ---------- */
+
+.sitebar__nav { order: 2; }
+
+.navlist {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-1);
+    list-style: none;
+    padding: 0;
+}
+
+.navlist__link {
+    display: block;
+    padding: 0.7em 0.9em;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    color: var(--c-text-muted);
+    text-decoration: none;
+    transition: color var(--t-fast), background var(--t-fast);
+}
+
+.navlist__link:hover {
+    color: var(--c-text-brand);
+    background: var(--c-gold-tint);
+}
+
+/* La seccion actual se marca con fondo, no solo con color: el color solo no
+   alcanza para quien no distingue el dorado del gris. */
+.navlist__link.is-current {
+    color: var(--c-text-on-primary);
+    background: var(--c-gold);
+}
+
+.navlist__link.is-current:hover { color: var(--c-text-on-primary); background: var(--c-gold-dark); }
+
+/* ---------- Lado derecho ---------- */
+
+.sitebar__aside {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    order: 1;
+    inline-size: 100%;
+}
+
+/* En mobile el switch de tema es lo primero del menu y va a la izquierda; el
+   nombre de usuario y "Salir" quedan a la derecha de la misma fila. El orden
+   va por CSS y no por el HTML para que el marcado sea el mismo que en
+   escritorio, donde el switch va al medio, entre el nav y "Salir". */
+.sitebar__aside [data-theme-toggle] {
+    order: -1;
+    margin-inline-end: auto;
+}
+
+.sitebar__user {
+    font-size: var(--fs-sm);
+    color: var(--c-text-muted);
+    max-inline-size: 10ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-inline-start: var(--s-3);
+    border-inline-start: 1px solid var(--c-line);
+}
+
+/* ==========================================================================
+   Pie
+   ========================================================================== */
+
+.sitefoot {
+    border-block-start: 1px solid var(--c-line);
+    background: var(--c-surface-2);
+    padding-block: var(--s-6) var(--s-5);
+    margin-block-start: auto;
+}
+
+.sitefoot__inner {
+    display: grid;
+    gap: var(--s-5);
+    /* Grid: es un layout 2D de marca + tres columnas de enlaces. */
+    grid-template-columns: 1fr;
+}
+
+/* ---------- Marca ---------- */
+
+.sitefoot__brand { display: grid; gap: var(--s-2); align-content: start; }
+
+.sitefoot__logo { inline-size: 3rem; }
+
+.sitefoot__name {
+    font-family: var(--font-display);
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    color: var(--c-text-brand);
+    line-height: var(--lh-tight);
+}
+
+.sitefoot__tagline { font-size: var(--fs-sm); color: var(--c-text-muted); }
+
+/* ---------- Columnas de enlaces ---------- */
+
+.sitefoot__group { display: grid; gap: var(--s-2); align-content: start; }
+
+.sitefoot__title {
+    font-family: var(--font-sans);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    color: var(--c-text-brand);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding-block-end: var(--s-2);
+    border-block-end: 1px solid var(--c-line);
+}
+
+.sitefoot__links { list-style: none; padding: 0; display: grid; gap: var(--s-2); }
+
+.sitefoot__link {
+    font-size: var(--fs-sm);
+    color: var(--c-text-muted);
+    text-decoration: none;
+    transition: color var(--t-fast);
+}
+
+.sitefoot__link:hover { color: var(--c-text-brand); text-decoration: underline; }
+
+.sitefoot__links--static { color: var(--c-text-muted); font-size: var(--fs-sm); }
+
+/* El margen de abajo estaba ausente: el texto legal quedaba pegado al borde
+   inferior del pie, sin aire. */
+.sitefoot__legal {
+    margin-block: var(--s-5);
+    padding-block-start: var(--s-4);
+    border-block-start: 1px solid var(--c-line);
+    text-align: center;
+    font-size: var(--fs-xs);
+    color: var(--c-text-muted);
+}
+
+/* ---------- Responsive, mobile-first ---------- */
+
+@media (min-width: 34rem) {
+    .sitefoot__inner { grid-template-columns: repeat(2, 1fr); }
+    .sitefoot__brand { grid-column: 1 / -1; }
+}
+
+@media (min-width: 48rem) {
+    /* El nav pasa a la fila principal y deja de ocupar una linea propia. */
+    .sitebar__inner { flex-wrap: nowrap; gap: var(--s-4); }
+    .sitebar__brand { margin-inline-end: 0; }
+
+    /* El hamburguesa es de mobile: aca el nav ya esta a la vista. */
+    .js .sitebar__burger { display: none; }
+
+    /* El panel se lee siempre, tenga o no `is-open`. Esta regla va DESPUES de
+       `.js .sitebar__panel { display: none }` y con la misma especificidad,
+       asi que gana por orden: el menu se ve entero sin importar el estado que
+       dejo mobile. */
+    .sitebar__panel {
+        order: 2;
+        /* `flex: 1` y no `inline-size: auto`: el panel tiene que ocupar todo el
+           ancho que sobra para que el bloque de sesion se pueda ir al borde.
+           Con auto el panel se ajusta al contenido y no queda nada que empujar. */
+        flex: 1;
+        min-inline-size: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--s-4);
+        padding-block-start: 0;
+        border-block-start: 0;
+    }
+    .js .sitebar__panel { display: flex; }
+
+    /* Nav primero y sesion despues, como antes del menu: en escritorio el
+       switch de tema va a la derecha, entre el nav y el borde. Al reves (que
+       es lo que pasa si los dos quedan en order 0) el switch queda pegado a
+       la marca.
+
+       El `margin-inline-start: auto` empuja el bloque entero (nombre de
+       usuario, switch de tema y "Salir") al extremo derecho de la barra, en vez
+       de dejarlo pegado al nav con media pantalla de aire. Solo aca: en mobile
+       el switch va al PRINCIPIO del panel (ver `.sitebar__aside
+       [data-theme-toggle]` mas arriba), y un auto aca lo cruzaria de vuelta. */
+    .sitebar__nav { order: 0; }
+    /* El `inline-size: 100%` de mobile hay que quitarlo ACA: con el panel
+       estirado (flex: 1) el aside se tomaba todo el ancho, y un `auto` sin
+       espacio libre no empuja nada. Sin esto el bloque de sesion queda pegado
+       al nav con media pantalla de aire al lado. */
+    .sitebar__aside { order: 1; inline-size: auto; margin-inline-start: auto; }
+    .sitebar__aside [data-theme-toggle] { order: 0; margin-inline-end: 0; }
+
+    /* "Salir" al mismo alto que el switch de tema, que es un circulo de 2,5rem.
+       Con el .btn--sm de mobile queda en ~25px al lado de un circulo de 40, y
+       los dos botones parecen de familias distintas. Aca se sube el alto y el
+       cuerpo del texto, no el padding de mobile. */
+    .sitebar__aside .btn {
+        min-block-size: 2.5rem;
+        padding-block: 0.55em;
+        padding-inline: 1.35em;
+        font-size: var(--fs-sm);
+    }
+
+    /* Los enlaces vuelven a ser una fila scrolleable, como antes del menu. */
+    .navlist {
+        flex-direction: row;
+        /* Con 4 secciones no hace falta; pero si se agregan mas, scrollea en
+           vez de romper el layout. */
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    .navlist__link {
+        padding: 0.4em 0.8em;
+        border-radius: var(--r-pill);
+        white-space: nowrap;
+    }
+
+    .sitefoot__inner { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+    .sitefoot__brand { grid-column: auto; }
+    .sitefoot__brand { padding-inline-end: var(--s-4); }
+}
+
+@media (min-width: 64rem) {
+    .sitebar__inner { padding-block: var(--s-4); }
+    .sitebar__logo { inline-size: 2.75rem; }
+}
+
+/* En el header ya no hace falta el boton flotando: queda solo en las paginas
+   de autenticacion, que no tienen encabezado. */
+@media (min-width: 48rem) {
+    .sitebar .theme-toggle__btn { /* mismo tamaño que el flotante */ }
+}

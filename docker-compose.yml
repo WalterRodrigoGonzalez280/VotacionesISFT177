@@ -1,0 +1,93 @@
+services:
+  db:
+    build: Dockerfiles/postgres/
+    restart: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: America/Argentina/Buenos_Aires
+    volumes:
+      # Volumen con nombre, NO un bind mount. Antes el datadir de MySQL vivia en
+      # ./dump/ dentro del repo, que era el unico ejemplar del schema y no
+      # estaba en git: un `docker compose down -v` o el datadir corrupto
+      # llevaban el proyecto con todo. El volumen con nombre tampoco se puede
+      # pisar por error con un archivo del repo.
+      - pgdata:/var/lib/postgresql/data
+      # El entrypoint de Postgres corre esto SOLO la primera vez, cuando el
+      # volumen esta vacio, y con ON_ERROR_STOP=1: si el schema tiene un error,
+      # el arranque falla en vez de dejar la base a medias. Es idempotente
+      # porque Postgres no lo reejecuta si el volumen ya existe; para recargar
+      # a mano ver README.md.
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/datos.sql:/docker-entrypoint-initdb.d/02-datos.sql:ro
+    container_name: db
+    # Tuning para 9.5: shared_buffers = 25% de la RAM disponible al contenedor.
+    # work_mem = 4MB evita que sorts grandes tiren a disco.
+    # effective_cache_size = asume que el SO tiene ~1GB de cache disponible.
+    # max_connections = 20 es suficiente para PHP-FPM con conexiones persistentes.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=64MB
+      - -c
+      - effective_cache_size=512MB
+      - -c
+      - max_connections=20
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - default_statistics_target=100
+    networks:
+      - app-network
+
+  php-apache:
+    build: Dockerfiles/php-apache/
+    container_name: App_votacion
+    env_file:
+      - .env
+    depends_on:
+      - db
+    volumes:
+      - ./www/:/var/www/html
+    ports:
+      - ${PHP_PORT}:80
+    networks:
+      - app-network
+
+  # Reemplaza a phpmyadmin, que solo habla MySQL. Adminer es un unico archivo
+  # PHP y sirve para las dos familias: pesa una fraccion de lo que ocupaba
+  # phpmyadmin y no tiene una imagen de Python de ~1 GB detrás.
+  adminer:
+    image: adminer:latest
+    container_name: adminer_votacion
+    env_file:
+      - .env
+    depends_on:
+      - db
+    restart: always
+    ports:
+      # A 8080, no a 80: la imagen oficial adminer no usa nginx/apache como
+      # el resto, levanta el servidor de desarrollo de PHP en el 8080. Mapear
+      # a 80 levanta el puerto sin nada escuchando adentro, y el síntoma es
+      # "connection reset" en vez de un 502, que manda a buscar el problema
+      # en otro lado.
+      - ${ADMINER_PORT}:8080
+    environment:
+      - ADMINER_DEFAULT_SERVER=db
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    name: aphd-2025_app-network
+    driver: bridge
+
+volumes:
+  pgdata:

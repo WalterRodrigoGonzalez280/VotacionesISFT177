@@ -1,0 +1,405 @@
+/* ==========================================================================
+   admin.css - panel de administracion
+   ==========================================================================
+   Tabs con ARIA, tablas y el dialog nativo, en tema oscuro.
+   ========================================================================== */
+
+.page__title {
+    font-size: var(--fs-2xl);
+    margin-block: var(--s-7) var(--s-4);
+}
+
+/* ---------- Tabs ---------- */
+div[data-config] {
+    margin: 10px 0px;
+}
+
+[data-users-list] {
+    margin: 10px 0px;
+}
+.tabs__list {
+    display: flex;
+    gap: var(--s-1);
+    overflow-x: auto;
+    border-block-end: 1px solid var(--c-line);
+    margin-block-end: var(--s-5);
+    scrollbar-width: thin;
+}
+
+.tabs__tab {
+    flex: none;
+    padding: var(--s-3) var(--s-4);
+    background: transparent;
+    border: 0;
+    border-block-end: 3px solid transparent;
+    color: var(--c-text-muted);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    white-space: nowrap;
+    transition: color var(--t-fast), border-color var(--t-fast);
+}
+
+.tabs__tab:hover { color: var(--c-text-brand); }
+
+.tabs__tab[aria-selected='true'] {
+    color: var(--c-text-brand);
+    border-block-end-color: var(--c-text-brand);
+}
+
+.tabs__panel[hidden] { display: none; }
+
+/* ---------- Encabezado de panel ---------- */
+
+.panel__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    margin-block-end: var(--s-4);
+}
+
+.panel__head h2 { font-size: var(--fs-lg); }
+
+.panel__actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+
+.panel__loading,
+.panel__empty,
+.panel__error {
+    padding: var(--s-5);
+    text-align: center;
+    color: var(--c-text-muted);
+    font-size: var(--fs-sm);
+    background: var(--c-surface-2);
+    border: 1px dashed var(--c-line-strong);
+    border-radius: var(--r-md);
+}
+
+/* Refresco en curso. `showLoading()` (admin.js) marca el contenedor con
+   `aria-busy` en vez de vaciarlo, asi que la tabla o la lista vieja se quedan
+   en su lugar y la pagina no cambia de alto -- antes ese vaciado provocaba un
+   colapso de 1529px con 20 usuarios. El atenuado es la senal de que se esta
+   trabajando, y el `transition` evita que sea un corte seco.
+
+   El `.panel__loading` inicial NO se atenua: cuando el contenedor arranca vacio
+   `showLoading` pinta el placeholder y lo marca igual, pero atenuarlo un
+   instante no aporta nada y se ve raro. */
+.tabs__panel [aria-busy='true']:not(:has(.panel__loading)) {
+    opacity: 0.55;
+    transition: opacity var(--t-fast);
+}
+
+.panel__error {
+    color: var(--c-danger-ink);
+    background: var(--c-danger-bg);
+    border-color: var(--c-danger-line);
+}
+
+/* ---------- Tabla ---------- */
+
+/* Wrapper con scroll horizontal en mobile */
+.table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font-size: var(--fs-sm);
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--r-md);
+}
+
+.table th,
+.table td {
+    padding: var(--s-3);
+    text-align: start;
+    border-block-end: 1px solid var(--c-line);
+    vertical-align: middle;
+}
+
+.table__rol,
+.table__estado {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.table__rol .badge,
+.table__estado .badge {
+    vertical-align: middle;
+}
+
+.table thead th {
+    background: var(--c-surface-2);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--c-text-accent);
+    font-weight: 700;
+}
+
+.table tbody tr:last-child td { border-block-end: 0; }
+.table tbody tr:hover { background: var(--c-surface-3); }
+
+.table__num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.table__email { word-break: break-all; color: var(--c-text-muted); }
+.table__detail { color: var(--c-text-muted); max-inline-size: 22rem; }
+
+.table__actions { display: flex; gap: var(--s-1); }
+
+/* ---------- Boton de icono ---------- */
+
+.icon-btn {
+    display: grid;
+    place-items: center;
+    /* 2,75rem = 44px. Antes media 2,1rem (33,6px), por debajo del minimo
+       recomendado incluso con mouse. */
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+    padding: 0;
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-line);
+    border-radius: var(--r-sm);
+    color: var(--c-text-muted);
+    transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
+}
+
+.icon-btn .icon { inline-size: 1.05rem; block-size: 1.05rem; }
+
+.icon-btn:hover {
+    border-color: var(--c-text-brand);
+    color: var(--c-text-brand);
+    background: var(--c-gold-tint);
+}
+
+.icon-btn.is-danger:hover {
+    border-color: var(--c-danger);
+    color: var(--c-danger-ink);
+    background: var(--c-danger-bg);
+}
+
+.icon-btn.is-disabled,
+.icon-btn.is-disabled:hover {
+    opacity: 0.4;
+    cursor: not-allowed;
+    border-color: var(--c-line);
+    color: var(--c-text-muted);
+    background: var(--c-surface-2);
+}
+
+/* ---------- Badges ---------- */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.1rem 0.45rem;
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-radius: var(--r-sm);
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
+.badge--success {
+    background: var(--c-ok-bg);
+    color: var(--c-ok-ink);
+    border: 1px solid var(--c-ok-line);
+}
+
+.badge--warning {
+    background: var(--c-warn-bg);
+    color: var(--c-warn-ink);
+    border: 1px solid var(--c-warn-line);
+}
+
+.badge--danger {
+    background: var(--c-danger-bg);
+    color: var(--c-danger-ink);
+    border: 1px solid var(--c-danger-line);
+}
+
+.table__rol,
+.table__estado { white-space: nowrap; }
+
+/* ---------- Usuarios: toolbar y paginación ---------- */
+
+.users-toolbar {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--s-2);
+    margin-block-end: var(--s-3);
+    align-items: stretch;
+}
+
+/* Override .field__input { inline-size: 100% } — sin esto cada campo
+   toma el 100% del contenedor y se apilan. */
+.users-toolbar .field__input {
+    inline-size: auto;
+    padding: 0.35em 0.6em;
+    font-size: var(--fs-sm);
+}
+
+.users-toolbar__search {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+}
+
+.users-toolbar__select {
+    flex: 0 0 auto;
+    inline-size: 9rem;
+    min-inline-size: 0;
+}
+
+.users-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s-3);
+    margin-block-start: var(--s-3);
+    flex-wrap: wrap;
+}
+
+.users-pagination__info {
+    font-size: var(--fs-sm);
+    color: var(--c-text-muted);
+}
+
+.users-pagination .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+@media (max-width: 40rem) {
+    .users-toolbar {
+        flex-wrap: wrap;
+    }
+    .users-toolbar__search {
+        flex: 1 1 100%;
+    }
+    .users-toolbar__select {
+        flex: 1 1 calc(50% - var(--s-2));
+        inline-size: auto;
+    }
+}
+
+/* ---------- Grupos ---------- */
+
+.groupbox { margin-block-end: var(--s-5); }
+
+.groupbox__title {
+    font-size: var(--fs-md);
+    padding-block-end: var(--s-2);
+    margin-block-end: var(--s-3);
+    border-block-end: 1px solid var(--c-line-gold);
+}
+
+.grouplist { list-style: none; padding: 0; display: grid; gap: var(--s-2); }
+
+.groupitem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--r-sm);
+    transition: border-color var(--t-fast);
+}
+
+.groupitem:hover { border-color: var(--c-line-strong); }
+
+.groupitem__info { display: grid; gap: var(--s-1); min-inline-size: 0; }
+.groupitem__name { font-size: var(--fs-sm); color: var(--c-text); overflow-wrap: anywhere; }
+.groupitem__count { font-size: var(--fs-xs); color: var(--c-text-muted); }
+.groupitem__actions { display: flex; gap: var(--s-1); flex: none; }
+
+/* ---------- Ganadores ---------- */
+
+.winners { display: grid; gap: var(--s-4); }
+
+.winnerbox {
+    padding: var(--s-4);
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-inline-start: 4px solid var(--c-gold);
+    border-radius: var(--r-sm);
+    /* El gap de la grilla ya separa las tarjetas; esto suma aire cuando el
+       panel las apila en una sola columna, que es el caso de mobile. */
+    margin-block-end: var(--s-2);
+}
+
+.winnerbox--overall {
+    background: var(--c-gold-tint);
+    border-color: var(--c-line-strong);
+    border-inline-start-color: var(--c-text-brand);
+}
+
+.winnerbox__group {
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--c-text-accent);
+    font-weight: 700;
+}
+
+.winnerbox__name { font-size: var(--fs-md); font-weight: 700; color: var(--c-text); }
+.winnerbox__count { font-size: var(--fs-sm); color: var(--c-text-muted); }
+
+/* ---------- Configuracion ---------- */
+
+/* El ancho sale del campo, no al reves. Un input datetime-local mide ~265px de
+   min-content (los segmentos de fecha, la hora y el icono del calendario), asi
+   que a 30rem los dos campos no entraban: el grid se iba a 570px de contenido
+   dentro de una caja de 478 y los inputs se pasaban del borde derecho de la
+   tarjeta, tapando el borde y el padding.
+
+   Ahora la caja toma TODO el ancho del panel: sin `max-inline-size` los bordes
+   de la tarjeta coinciden con los del encabezado de arriba (el "Horario de
+   votacion" y el boton "Actualizar"), que es lo que se busca. Los dos campos
+   uno al lado del otro necesitan 265 + 265 + 16 de gap + 48 de padding = 594, o
+   sea ~38rem; a partir de ahi sobra, y el `minmax(0, 1fr)` de abajo reparte el
+   espacio en vez de dejar el contenido pegado a un lado.
+
+   `div[data-config]` tiene `margin: 10px 0` (y no `10px` en los cuatro lados),
+   asi que el padding-block del panel se mantiene pero los bordes verticales
+   siguen alineados con el encabezado. */
+.configform {
+    display: grid;
+    gap: var(--s-4);
+    inline-size: 100%;
+    padding: var(--s-5);
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--r-md);
+}
+
+/* Sin esto el control no acepta medir menos que su ancho intrinseco, que es
+   justamente lo que lo hacia desbordar la grilla. */
+.configform .field__input { min-inline-size: 0; }
+
+
+/* ---------- Responsive ---------- */
+
+/* Sin esto el boton queda pegado al ultimo campo: el `gap` de la grilla lo
+   separa, pero con la fila del año (que trae su propio hint) el bloque parece
+   una sola cosa. */
+.configform .btn { margin-block-start: var(--s-2); }
+
+@media (min-width: 48rem) {
+    .winners { grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
+    .grouplist { grid-template-columns: repeat(2, 1fr); }
+    /* minmax(0, 1fr) y no 1fr: el minimo automatico de una pista `1fr` es el
+       min-content del campo, o sea el ancho del datetime-local, y eso es lo
+       que empujaba la tarjeta. Ver .configform. */
+    .configform { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .configform .btn { grid-column: 1 / -1; justify-self: start; }
+}
+
+@media (min-width: 64rem) {
+    .grouplist { grid-template-columns: repeat(3, 1fr); }
+}

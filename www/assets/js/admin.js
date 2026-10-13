@@ -1,0 +1,859 @@
+/**
+ * Panel de administracion.
+ *
+ * ES module, sin `var`. Toda llamada a la API pasa por `api()`, que hace
+ * async/await con try/catch y devuelve { ok, data } sin lanzar nunca.
+ *
+ * Dos reglas que se respetan aca:
+ *  - Delegacion de eventos: los listeners viven en los contenedores, no en
+ *    cada fila. Las tablas se re-renderizan enteras y los handlers siguen.
+ *  - No se innerHTML para construir filas: se crean nodos. El contenido que
+ *    viene de la base (nombres de usuario, de proyecto) no se interpola
+ *    como HTML, asi que un nombre con "<script>" no puede ejecutarse.
+ */
+
+const ENDPOINT = '/api/';
+const dialog = document.querySelector('[data-dialog]');
+
+/**
+ * Muestra un aviso con `window.alert`, que es lo mismo que ya hacen `confirm`
+ * y `prompt` en este archivo para las acciones destructivas.
+ *
+ * Antes era un cartel propio en una region `[data-messages]`, pero esa region
+ * estaba DESPUES de `.tabs`: el mensaje salia debajo de la tabla de usuarios,
+ * que es lo unico que crece, y con 20 filas ya caia a ~1000px del boton,
+ * fuera de pantalla. Un toast fijo lo arreglaba, pero `alert` tapa el
+ * `<dialog>` abierto y un toast NO puede: el dialog se pinta en el top layer,
+ * que le gana a cualquier z-index. Eso era justo lo que pasaba con "Agregar
+ * proyecto" sin nombre, que avisaba por `notify` con el modal todavia abierto.
+ *
+ * `kind` queda solo para el prefijo: sin caja roja, el error se tiene que
+ * distinguir por texto.
+ */
+function notify(text, kind = 'success') {
+  // `data.message || data.error` deja `undefined` cuando la API no manda
+  // ninguno, y `alert(undefined)` muestra la palabra "undefined".
+  if (!text) return;
+  window.alert(kind === 'error' ? `Error: ${text}` : text);
+}
+
+/** @returns {Promise<{ok: boolean, data: object}>} */
+async function api(action, fields = {}) {
+  const body = new URLSearchParams({ action, ...fields });
+
+  try {
+    const response = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    });
+    const data = await response.json();
+
+    if (!response.ok || data.success === false) return { ok: false, data };
+    return { ok: true, data };
+  } catch (error) {
+    console.error(`[api] ${action}:`, error);
+    return { ok: false, data: { error: 'No pudimos comunicarnos con el servidor.' } };
+  }
+}
+
+/* ----------------------------------------------------------------- helpers */
+
+/** Crea un elemento con clase, texto y atributos, en una sola llamada. */
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+/** Reemplaza el contenido de un contenedor. */
+function render(container, ...nodes) {
+  if (!container) return;
+  container.replaceChildren(...nodes);
+  // Todo final de carga termina en un render() -- exito, vacio o error -- asi
+  // que el estado se limpia solo en cualquier `return`, sin repetirlo en los
+  // cuatro loaders.
+  container.removeAttribute('aria-busy');
+}
+
+/**
+ * Estado de carga SIN pisar lo que ya esta en pantalla.
+ *
+ * Antes cada refresh reescribia el contenedor con una linea de "Cargando ..."
+ * ANTES de que saliera la request, y como `render()` hace replaceChildren, la
+ * tabla entera se borraba. Medido con 20 usuarios: la lista pasa de 1605px a
+ * 76px y vuelve a 1605px cuando llega la respuesta, 60ms despues. 1529px de
+ * colapso, y la pagina entera con ella: eso es el salto que se ve al hacer
+ * cualquier accion. Los "pocos milisegundos" son la latencia de la peticion.
+ *
+ * No es culpa de `notify()`: `reload-users` no avisa nada y colapsa igual.
+ *
+ * El placeholder queda solo para la carga inicial, cuando no hay nada que
+ * conservar. En los refrescos la tabla vieja sigue ahi, atenuada por
+ * `aria-busy` (ver admin.css): hay senal de que se esta actualizando sin que
+ * la pagina cambie de alto.
+ */
+function showLoading(container, label) {
+  if (!container) return;
+  // El atributo va DESPUES del render: si se pusiera antes, ese mismo render lo
+  // volveria a borrar y el atenuado no llegaria a aplicarse nunca.
+  if (!container.firstElementChild) render(container, el('p', 'panel__loading', label));
+  container.setAttribute('aria-busy', 'true');
+}
+
+/* ------------------------------------------------------------------ tabs */
+
+let tabs = [];
+let panels = [];
+
+function cacheTabs() {
+  tabs = [...document.querySelectorAll('[data-tab]')];
+  panels = [...document.querySelectorAll('[data-panel]')];
+}
+
+/**
+ * Muestra una pestana. `focus` se pasa en true cuando el cambio vino de las
+ * flechas del teclado, para que el foco acompanhe al tab activo.
+ */
+function selectTab(name, { focus = false } = {}) {
+  for (const tab of tabs) {
+    const active = tab.dataset.tab === name;
+    tab.setAttribute('aria-selected', String(active));
+    tab.tabIndex = active ? 0 : -1;
+    if (active && focus) tab.focus();
+  }
+
+  for (const panel of panels) {
+    panel.hidden = panel.dataset.panel !== name;
+  }
+}
+
+// Cambia el ?tab= sin recargar, para que la URL quede compartible.
+function syncUrl(name) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('tab', name);
+  window.history.replaceState({}, '', url);
+}
+
+function onTabClick(event) {
+  const tab = event.target.closest('[data-tab]');
+  if (!tab) return;
+  selectTab(tab.dataset.tab);
+  syncUrl(tab.dataset.tab);
+  loadPanel(tab.dataset.tab);
+}
+
+function onTabKeydown(event) {
+  const tab = event.target.closest('[data-tab]');
+  if (!tab) return;
+
+  const index = tabs.indexOf(tab);
+  let next = null;
+
+  if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+  else if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+  else if (event.key === 'Home') next = 0;
+  else if (event.key === 'End') next = tabs.length - 1;
+  else return;
+
+  event.preventDefault();
+  selectTab(tabs[next].dataset.tab, { focus: true });
+}
+
+/* ---------------------------------------------------------------- usuarios */
+
+const USERS_PAGE_SIZE = 25;
+const USERS_POLL_MS = 12000; // 12 segundos
+
+/** Todos los usuarios crudos (antes de filtrar). */
+let allUsers = [];
+/** Estado de filtros y paginación, vivos entre renders. */
+let usersState = { search: '', rol: '', estado: '', page: 1 };
+/** Timer del polling de la pestaña Usuarios. */
+let usersPollTimer = null;
+
+/**
+ * Evita refrescar mientras el usuario está en plena acción:
+ * - con un <dialog> abierto (confirmar, prompt, agregar proyecto)
+ * - con un confirm/prompt pendiente (el handler es async)
+ */
+function isBusy() {
+  return dialog?.open === true;
+}
+
+function startUsersPolling() {
+  stopUsersPolling();
+  usersPollTimer = setInterval(() => {
+    // No refrescar si hay un diálogo abierto o si la pestaña ya no es Usuarios.
+    if (isBusy()) return;
+    const panel = document.querySelector('[data-panel="usuarios"]');
+    if (!panel || panel.hidden) { stopUsersPolling(); return; }
+    loadUsers();
+  }, USERS_POLL_MS);
+}
+
+function stopUsersPolling() {
+  if (usersPollTimer) {
+    clearInterval(usersPollTimer);
+    usersPollTimer = null;
+  }
+}
+
+/** Aplica filtros + paginación y devuelve { rows, total, pages, page }. */
+function getFilteredUsers() {
+  const q = usersState.search.trim().toLowerCase();
+  const rol = usersState.rol;
+  const estado = usersState.estado;
+
+  const filtered = allUsers.filter((u) => {
+    if (q) {
+      const hay = `${u.nombre} ${u.email}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (rol) {
+      const esAdmin = u.rol_id == 1 || u.es_admin == 1;
+      if (rol === 'admin' && !esAdmin) return false;
+      if (rol === 'usuario' && esAdmin) return false;
+    }
+    if (estado) {
+      const activo = u.activo == 1;
+      if (estado === 'activo' && !activo) return false;
+      if (estado === 'inactivo' && activo) return false;
+    }
+    return true;
+  });
+
+  const total = filtered.length;
+  const pages = Math.max(1, Math.ceil(total / USERS_PAGE_SIZE));
+  const page = Math.min(usersState.page, pages);
+  usersState.page = page;
+  const start = (page - 1) * USERS_PAGE_SIZE;
+
+  return { rows: filtered.slice(start, start + USERS_PAGE_SIZE), total, pages, page };
+}
+
+function buildUsersToolbar() {
+  const bar = el('div', 'users-toolbar');
+
+  // Buscador
+  const search = el('input', 'field__input users-toolbar__search');
+  search.type = 'search';
+  search.placeholder = 'Buscar por nombre o email…';
+  search.value = usersState.search;
+  search.setAttribute('aria-label', 'Buscar usuarios');
+  search.addEventListener('input', () => {
+    usersState.search = search.value;
+    usersState.page = 1;
+    renderUsersTable();
+  });
+
+  // Filtro rol
+  const rolSel = el('select', 'field__input users-toolbar__select');
+  rolSel.setAttribute('aria-label', 'Filtrar por rol');
+  for (const [v, t] of [['', 'Todos los roles'], ['admin', 'Admin'], ['usuario', 'Usuario']]) {
+    const opt = el('option', null, t);
+    opt.value = v;
+    rolSel.append(opt);
+  }
+  rolSel.value = usersState.rol;
+  rolSel.addEventListener('change', () => {
+    usersState.rol = rolSel.value;
+    usersState.page = 1;
+    renderUsersTable();
+  });
+
+  // Filtro estado
+  const estSel = el('select', 'field__input users-toolbar__select');
+  estSel.setAttribute('aria-label', 'Filtrar por estado');
+  for (const [v, t] of [['', 'Todos'], ['activo', 'Activo'], ['inactivo', 'Inactivo']]) {
+    const opt = el('option', null, t);
+    opt.value = v;
+    estSel.append(opt);
+  }
+  estSel.value = usersState.estado;
+  estSel.addEventListener('change', () => {
+    usersState.estado = estSel.value;
+    usersState.page = 1;
+    renderUsersTable();
+  });
+
+  bar.append(search, rolSel, estSel);
+  return bar;
+}
+
+function buildUsersPagination({ total, pages, page }) {
+  if (pages <= 1) {
+    const info = el('p', 'users-pagination__info', `${total} usuario${total === 1 ? '' : 's'}`);
+    return info;
+  }
+
+  const nav = el('nav', 'users-pagination');
+  nav.setAttribute('aria-label', 'Paginación de usuarios');
+
+  const prev = el('button', 'btn btn--secondary btn--sm', '← Anterior');
+  prev.type = 'button';
+  prev.disabled = page <= 1;
+  prev.addEventListener('click', () => {
+    usersState.page = page - 1;
+    renderUsersTable();
+  });
+
+  const next = el('button', 'btn btn--secondary btn--sm', 'Siguiente →');
+  next.type = 'button';
+  next.disabled = page >= pages;
+  next.addEventListener('click', () => {
+    usersState.page = page + 1;
+    renderUsersTable();
+  });
+
+  const info = el('span', 'users-pagination__info', `Página ${page} de ${pages} · ${total} usuarios`);
+
+  nav.append(prev, info, next);
+  return nav;
+}
+
+function renderUsersTable() {
+  const container = document.querySelector('[data-users-list]');
+  if (!container) return;
+
+  const { rows, total, pages, page } = getFilteredUsers();
+  const currentUserId = Number(window.CURRENT_USER_ID || 0);
+
+  const fragment = document.createDocumentFragment();
+
+  // Toolbar siempre visible
+  fragment.append(buildUsersToolbar());
+
+  if (allUsers.length === 0) {
+    fragment.append(el('p', 'panel__empty', 'No hay usuarios registrados.'));
+    render(container, fragment);
+    return;
+  }
+
+  if (rows.length === 0) {
+    fragment.append(el('p', 'panel__empty', 'Ningún usuario coincide con los filtros.'));
+    fragment.append(buildUsersPagination({ total, pages, page }));
+    render(container, fragment);
+    return;
+  }
+
+  // Tabla
+  const table = el('table', 'table');
+  table.append(buildHead(['ID', 'Usuario', 'Email', 'Rol', 'Estado', 'Votos', 'Detalle', 'Acciones']));
+  const tbody = el('tbody');
+  for (const user of rows) {
+    tbody.append(buildUserRow(user, currentUserId));
+  }
+  table.append(tbody);
+  const wrap = el('div', 'table-wrap');
+  wrap.append(table);
+  fragment.append(wrap);
+
+  // Paginación
+  fragment.append(buildUsersPagination({ total, pages, page }));
+
+  render(container, fragment);
+}
+
+async function loadUsers() {
+  const container = document.querySelector('[data-users-list]');
+  showLoading(container, 'Cargando usuarios…');
+
+  const { ok, data } = await api('obtener_usuarios');
+
+  if (!ok) {
+    render(container, el('p', 'panel__error', data.error || 'No pudimos cargar los usuarios.'));
+    return;
+  }
+
+  allUsers = data.usuarios || [];
+  // Si la página actual queda vacía tras borrar, volver a la 1.
+  if (usersState.page > 1 && allUsers.length <= (usersState.page - 1) * USERS_PAGE_SIZE) {
+    usersState.page = 1;
+  }
+
+  renderUsersTable();
+}
+
+function buildHead(columns) {
+  const thead = el('thead');
+  const tr = el('tr');
+  for (const column of columns) {
+    const th = el('th', null, column);
+    th.scope = 'col';
+    tr.append(th);
+  }
+  thead.append(tr);
+  return thead;
+}
+
+function buildUserRow(user, currentUserId) {
+  const tr = el('tr');
+
+  tr.append(el('td', 'table__num', String(user.id)));
+
+  const name = el('td');
+  name.append(el('strong', null, user.nombre));
+  tr.append(name);
+
+  tr.append(el('td', 'table__email', user.email));
+
+  // Rol
+  const esAdmin = user.rol_id == 1 || user.es_admin == 1;
+  const rolBadge = el('span', `badge ${esAdmin ? 'badge--warning' : 'badge--success'}`);
+  rolBadge.textContent = esAdmin ? 'Admin' : 'Usuario';
+  const rolCell = el('td', 'table__rol');
+  rolCell.append(rolBadge);
+  tr.append(rolCell);
+
+  // Estado
+  const estaActivo = user.activo == 1;
+  const estadoBadge = el('span', `badge ${estaActivo ? 'badge--success' : 'badge--danger'}`);
+  estadoBadge.textContent = estaActivo ? 'Activo' : 'Inactivo';
+  const estadoCell = el('td', 'table__estado');
+  estadoCell.append(estadoBadge);
+  tr.append(estadoCell);
+
+  tr.append(el('td', 'table__num', String(user.total_votos ?? 0)));
+  tr.append(el('td', 'table__detail', user.votos_detalle || 'Sin votos'));
+
+  // Las acciones viajan como data-attributes; el listener esta delegado.
+  const actions = el('td', 'table__actions');
+  const isSelf = currentUserId && currentUserId == user.id;
+  const isOtherAdmin = esAdmin && !isSelf;
+
+  if (!isSelf) {
+    // Botón cambiar rol (deshabilitado para otros admins)
+    const nuevoRol = esAdmin ? 2 : 1;
+    const rolLabel = esAdmin ? `Quitar admin a ${user.nombre}` : `Hacer admin a ${user.nombre}`;
+    const rolDisabled = isOtherAdmin;
+    actions.append(
+      iconButton('personas', `cambiar-rol:${user.id}:${nuevoRol}`, rolLabel, rolDisabled ? 'is-disabled' : '')
+    );
+  }
+
+  // Botón activar/desactivar (no para uno mismo, no para otros admins)
+  if (!isSelf && !isOtherAdmin) {
+    const nuevoEstado = estaActivo ? 0 : 1;
+    const estadoLabel = estaActivo ? `Desactivar a ${user.nombre}` : `Activar a ${user.nombre}`;
+    actions.append(
+      iconButton(estaActivo ? 'bloqueo' : 'llave', `cambiar-estado:${user.id}:${nuevoEstado}`, estadoLabel)
+    );
+  }
+
+  // Botón resetear votos (no para uno mismo, no para otros admins)
+  if (!isSelf && !isOtherAdmin) {
+    actions.append(
+      iconButton('refresh', `resetear-votos-usuario:${user.id}`, `Resetear los votos de ${user.nombre}`)
+    );
+  }
+
+  // Botón eliminar (no para uno mismo, no para otros admins)
+  if (!isSelf && !isOtherAdmin) {
+    actions.append(
+      iconButton('borrar', `eliminar-usuario:${user.id}`, `Eliminar a ${user.nombre}`, 'is-danger')
+    );
+  }
+  tr.append(actions);
+
+  return tr;
+}
+
+/** Boton de icono: recibe el id del <symbol> del sprite, no un emoji. */
+function iconButton(icon, action, label, extra = '') {
+  const button = el('button', `icon-btn ${extra}`.trim());
+  button.type = 'button';
+  button.dataset.rowAction = action;
+  // El icono es decorativo; el nombre accesible va en aria-label.
+  button.setAttribute('aria-label', label);
+  button.title = label;
+  button.append(iconNode(icon));
+  return button;
+}
+
+/** Crea un <svg><use href="#i-..."></svg> apuntando al sprite. */
+function iconNode(name) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'icon');
+  svg.setAttribute('aria-hidden', 'true');
+  const use = document.createElementNS(NS, 'use');
+  use.setAttribute('href', `#i-${name}`);
+  svg.append(use);
+  return svg;
+}
+
+/* ----------------------------------------------------------------- grupos */
+
+async function loadGroups() {
+  const container = document.querySelector('[data-groups-list]');
+  showLoading(container, 'Cargando grupos…');
+
+  const { ok, data } = await api('obtener_subgrupos_admin');
+
+  if (!ok) {
+    render(container, el('p', 'panel__error', data.error || 'No pudimos cargar los grupos.'));
+    return;
+  }
+
+  if (data.subgrupos.length === 0) {
+    render(container, el('p', 'panel__empty', 'Todavía no hay proyectos cargados.'));
+    return;
+  }
+
+  // Agrupar por año en una sola pasada sobre un Map.
+  const byGroup = new Map();
+  for (const sub of data.subgrupos) {
+    if (!byGroup.has(sub.grupo_id)) {
+      byGroup.set(sub.grupo_id, { nombre: sub.grupo_nombre, items: [] });
+    }
+    byGroup.get(sub.grupo_id).items.push(sub);
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  for (const group of [...byGroup.values()].sort((a, b) => a.nombre.localeCompare(b.nombre))) {
+    const section = el('section', 'groupbox');
+    section.append(el('h3', 'groupbox__title', group.nombre));
+
+    const list = el('ul', 'grouplist');
+
+    for (const sub of group.items) {
+      const item = el('li', 'groupitem');
+
+      const info = el('div', 'groupitem__info');
+      info.append(
+        el('strong', 'groupitem__name', sub.nombre),
+        el('span', 'groupitem__count', `${sub.total_votos} votos`),
+      );
+
+      const actions = el('div', 'groupitem__actions');
+      actions.append(
+        iconButton('editar', `editar-subgrupo:${sub.id}`, `Renombrar ${sub.nombre}`),
+        iconButton('borrar', `eliminar-subgrupo:${sub.id}`, `Eliminar ${sub.nombre}`, 'is-danger'),
+      );
+
+      item.append(info, actions);
+      list.append(item);
+    }
+
+    section.append(list);
+    fragment.append(section);
+  }
+
+  render(container, fragment);
+}
+
+/* -------------------------------------------------------------- ganadores */
+
+async function loadWinners() {
+  const container = document.querySelector('[data-winners]');
+  showLoading(container, 'Calculando ganadores…');
+
+  const { ok, data } = await api('obtener_resultados');
+
+  if (!ok) {
+    render(container, el('p', 'panel__error', data.error || 'No pudimos calcular los ganadores.'));
+    return;
+  }
+
+  if (data.resultados.length === 0) {
+    render(container, el('p', 'panel__empty', 'Todavía no hay proyectos para comparar.'));
+    return;
+  }
+
+  // Mismo criterio que antes: maximo de votos, gana el primero en empate.
+  const byGroup = new Map();
+  for (const row of data.resultados) {
+    if (!byGroup.has(row.grupo_id)) {
+      byGroup.set(row.grupo_id, { nombre: row.grupo_nombre, rows: [] });
+    }
+    byGroup.get(row.grupo_id).rows.push(row);
+  }
+
+  const fragment = document.createDocumentFragment();
+  const best = [];
+
+  for (const group of byGroup.values()) {
+    const max = Math.max(...group.rows.map((r) => Number(r.votos)));
+    const winner = group.rows.find((r) => Number(r.votos) === max);
+    if (winner) best.push(winner);
+
+    const box = el('article', 'winnerbox');
+    box.append(el('h3', 'winnerbox__group', group.nombre));
+    box.append(el('p', 'winnerbox__name', winner ? winner.nombre : 'Sin votos'));
+    box.append(el('p', 'winnerbox__count', winner ? `${winner.votos} votos` : '0 votos'));
+    fragment.append(box);
+  }
+
+  if (best.length > 0) {
+    const overall = el('article', 'winnerbox winnerbox--overall');
+    const top = Math.max(...best.map((r) => Number(r.votos)));
+    const champ = best.find((r) => Number(r.votos) === top);
+    overall.append(el('h3', 'winnerbox__group', 'Ganador general'));
+    overall.append(el('p', 'winnerbox__name', champ.nombre));
+    overall.append(el('p', 'winnerbox__count', `${champ.grupo_nombre} · ${champ.votos} votos`));
+    fragment.append(overall);
+  }
+
+  render(container, fragment);
+}
+
+/* ---------------------------------------------------------- configuracion */
+
+const toInputValue = (value) => (value ? String(value).slice(0, 16) : '');
+
+async function loadConfig() {
+  const container = document.querySelector('[data-config]');
+  showLoading(container, 'Cargando configuración…');
+
+  const { ok, data } = await api('obtener_configuracion');
+
+  if (!ok) {
+    render(container, el('p', 'panel__error', data.error || 'No pudimos cargar la configuración.'));
+    return;
+  }
+
+  const config = data.configuracion || {};
+  const form = el('form', 'configform');
+
+  const buildField = (id, label, value) => {
+    const wrap = el('div', 'field');
+    const lbl = el('label', 'field__label', label);
+    lbl.htmlFor = id;
+    const input = el('input', 'field__input');
+    input.type = 'datetime-local';
+    input.id = id;
+    input.value = toInputValue(value);
+    input.required = true;
+    wrap.append(lbl, input);
+    return { wrap, input };
+  };
+
+  /* El año de la edición, que se guarda en la tabla anio_votacion. */
+  const buildYearField = (value) => {
+    const wrap = el('div', 'field');
+    const lbl = el('label', 'field__label', 'Año de la exposición');
+    lbl.htmlFor = 'anio';
+    const input = el('input', 'field__input');
+    input.type = 'number';
+    input.id = 'anio';
+    input.name = 'anio';
+    input.value = value || new Date().getFullYear();
+    input.min = '2000';
+    input.max = '2100';
+    input.step = '1';
+    input.required = true;
+    const hint = el('p', 'field__hint', 'Es el año que se muestra en el título y en el encabezado.');
+    wrap.append(lbl, input, hint);
+    return { wrap, input };
+  };
+
+  const start = buildField('inicio_votacion', 'Inicio', config.inicio_votacion);
+  const end = buildField('fin_votacion', 'Fin', config.fin_votacion);
+  const year = buildYearField(config.anio);
+
+  const submit = el('button', 'btn btn--primary', 'Guardar configuración');
+  submit.type = 'button';
+  submit.dataset.action = 'save-config';
+
+  form.append(start.wrap, end.wrap, year.wrap, submit);
+  render(container, form);
+}
+
+async function saveConfig() {
+  const inicio = document.getElementById('inicio_votacion')?.value;
+  const fin = document.getElementById('fin_votacion')?.value;
+  const anio = Number(document.getElementById('anio')?.value);
+
+  if (!inicio || !fin) {
+    notify('Completá las dos fechas.', 'error');
+    return;
+  }
+  if (inicio >= fin) {
+    notify('La fecha de fin tiene que ser posterior a la de inicio.', 'error');
+    return;
+  }
+  if (!Number.isInteger(anio) || anio < 2000 || anio > 2100) {
+    notify('El año tiene que ser un número entre 2000 y 2100.', 'error');
+    return;
+  }
+
+  const { ok, data } = await api('guardar_configuracion', {
+    inicio_votacion: inicio,
+    fin_votacion: fin,
+    anio: String(anio),
+  });
+
+  if (!ok) {
+    notify(data.error || 'No pudimos guardar la configuración.', 'error');
+    return;
+  }
+  notify(data.message || 'Configuración guardada.');
+  loadConfig();
+}
+
+/* ---------------------------------------------------------------- acciones */
+
+/** Delegacion: un listener para todas las acciones declarativas. */
+async function onActionClick(event) {
+  const trigger = event.target.closest('[data-action], [data-row-action]');
+  if (!trigger) return;
+
+  // Acciones de fila: "accion:id"
+  if (trigger.dataset.rowAction) {
+    await handleRowAction(trigger.dataset.rowAction);
+    return;
+  }
+
+  switch (trigger.dataset.action) {
+    case 'reload-users':      loadUsers(); break;
+    case 'reload-groups':     loadGroups(); break;
+    case 'reload-winners':    loadWinners(); break;
+    case 'reload-config':     loadConfig(); break;
+    case 'clean-orphans':     cleanOrphans(); break;
+    case 'reset-all':         resetAll(); break;
+    case 'open-add':          dialog?.showModal(); break;
+    case 'add-subgroup':      addSubgroup(); break;
+    case 'save-config':       saveConfig(); break;
+    default: break;
+  }
+}
+
+async function handleRowAction(token) {
+  const parts = token.split(':');
+  const action = parts[0];
+  const id = parts[1];
+
+  switch (action) {
+    case 'resetear-votos-usuario': {
+      if (!window.confirm(`¿Resetear los votos de este usuario?`)) return;
+      const { ok, data } = await api('resetear_votos_usuario', { usuario_id: id });
+      notify(data.message || data.error, ok ? 'success' : 'error');
+      if (ok) loadUsers();
+      break;
+    }
+    case 'eliminar-usuario': {
+      if (!window.confirm('¿Eliminar este usuario y todos sus votos?')) return;
+      const { ok, data } = await api('eliminar_usuario', { usuario_id: id });
+      notify(data.message || data.error, ok ? 'success' : 'error');
+      if (ok) loadUsers();
+      break;
+    }
+    case 'cambiar-rol': {
+      const nuevoRol = parts[2];
+      const rolTexto = nuevoRol == 1 ? 'administrador' : 'usuario normal';
+      if (!window.confirm(`¿Cambiar el rol de este usuario a ${rolTexto}?`)) return;
+      const { ok, data } = await api('cambiar_rol_usuario', { usuario_id: id, rol_id: nuevoRol });
+      notify(data.message || data.error, ok ? 'success' : 'error');
+      if (ok) loadUsers();
+      break;
+    }
+    case 'cambiar-estado': {
+      const nuevoEstado = parts[2];
+      const estadoTexto = nuevoEstado == 1 ? 'activar' : 'desactivar';
+      if (!window.confirm(`¿${estadoTexto.charAt(0).toUpperCase() + estadoTexto.slice(1)} la cuenta de este usuario?`)) return;
+      const { ok, data } = await api('cambiar_estado_usuario', { usuario_id: id, activo: nuevoEstado });
+      notify(data.message || data.error, ok ? 'success' : 'error');
+      if (ok) loadUsers();
+      break;
+    }
+    case 'editar-subgrupo': {
+      const input = window.prompt('Nuevo nombre del proyecto:');
+      if (!input) return;
+      const { ok, data } = await api('actualizar_subgrupo', { id, nombre: input });
+      notify(data.message || data.error, ok ? 'success' : 'error');
+      if (ok) loadGroups();
+      break;
+    }
+    case 'eliminar-subgrupo': {
+      if (!window.confirm('¿Eliminar este proyecto y los votos que recibió?')) return;
+      const { ok, data } = await api('eliminar_subgrupo', { id });
+      notify(data.message || data.error, ok ? 'success' : 'error');
+      if (ok) loadGroups();
+      break;
+    }
+    default: break;
+  }
+}
+
+async function addSubgroup() {
+  const groupId = document.getElementById('grupo_id')?.value;
+  const name = document.getElementById('nombre')?.value.trim();
+
+  if (!groupId || !name) {
+    notify('Completá el año y el nombre.', 'error');
+    return;
+  }
+
+  const { ok, data } = await api('agregar_subgrupo', { grupo_id: groupId, nombre: name });
+
+  if (!ok) {
+    notify(data.error || 'No pudimos agregar el proyecto.', 'error');
+    return;
+  }
+
+  notify(data.message || 'Proyecto agregado.');
+  dialog?.close();
+  document.getElementById('nombre').value = '';
+  loadGroups();
+}
+
+async function cleanOrphans() {
+  if (!window.confirm('¿Revisar y borrar votos huérfanos?')) return;
+  const { ok, data } = await api('limpiar_votos_huerfanos');
+  notify(data.message || data.error, ok ? 'success' : 'error');
+  if (ok) loadUsers();
+}
+
+async function resetAll() {
+  if (!window.confirm('Esto borra TODOS los votos de todos los usuarios. ¿Seguís?')) return;
+  const { ok, data } = await api('resetear_todos_los_votos');
+  notify(data.message || data.error, ok ? 'success' : 'error');
+  if (ok) {
+    loadUsers();
+    loadGroups();
+  }
+}
+
+/* ------------------------------------------------------------------ arranque */
+
+function loadPanel(name) {
+  // Polling solo en la pestaña Usuarios; en las demás se detiene.
+  if (name === 'usuarios') {
+    loadUsers();
+    startUsersPolling();
+  } else {
+    stopUsersPolling();
+    if (name === 'subgrupos') loadGroups();
+    else if (name === 'ganadores') loadWinners();
+    else if (name === 'configuracion') loadConfig();
+  }
+}
+
+function init() {
+  cacheTabs();
+
+  document.addEventListener('click', (event) => {
+    onTabClick(event);
+    onActionClick(event);
+  });
+
+  document.addEventListener('keydown', onTabKeydown);
+
+  // El ?tab= de la URL decide que se muestra al entrar.
+  const inicial = tabs.find((t) => t.getAttribute('aria-selected') === 'true')?.dataset.tab
+    ?? tabs[0]?.dataset.tab;
+
+  if (inicial) {
+    selectTab(inicial);
+    loadPanel(inicial);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

@@ -1,0 +1,214 @@
+/* ==========================================================================
+   auth.css - login, registro, recuperacion y activacion
+   ==========================================================================
+   Patron "split screen" (el mas citado en diseno de auth: Headspace, Dropbox,
+   TED). En mobile apila; desde 64rem divide en dos columnas.
+
+   Sobre fondo oscuro el panel de marca se construye con un halo dorado, que
+   hace de version de la banda en crema sin tener que ponerla.
+   ========================================================================== */
+
+.auth {
+    min-block-size: 100dvh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+}
+
+/* ---------- Panel de marca ---------- */
+
+.auth__brand {
+    display: grid;
+    gap: var(--s-3);
+    justify-items: center;
+    text-align: center;
+    padding: var(--s-6) var(--s-5);
+    background:
+        radial-gradient(120% 90% at 50% 0%, var(--c-halo) 0%, transparent 62%),
+        var(--c-bg);
+    border-block-end: 1px solid var(--c-line);
+}
+
+.auth__logo { inline-size: 7rem; }
+
+.auth__institution {
+    font-family: var(--font-display);
+    font-size: var(--fs-lg);
+    color: var(--c-text-brand);
+    line-height: var(--lh-tight);
+}
+
+.auth__tagline {
+    max-inline-size: 24rem;
+    font-size: var(--fs-sm);
+    color: var(--c-text-muted);
+}
+
+/* ---------- Formulario ---------- */
+
+.auth__main {
+    display: grid;
+    align-content: start;
+    padding: var(--s-6) var(--s-5) var(--s-7);
+}
+
+/* El tope va en la tarjeta, no en .auth__main: esa celda ya se estira con el
+   viewport (a 1920 son 960px), asi que engrandecerla no moveria nada. Lo que
+   se ve acotado es la tarjeta, y por eso el tope vive aca.
+
+   El ancho mas grande acompana el cuerpo de 18px: a 24rem los inputs quedaban
+   pegados a los bordes de la caja. */
+.auth__card {
+    inline-size: min(100%, 26rem);
+    margin-inline: auto;
+    padding: var(--s-5);
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--r-md);
+    box-shadow: var(--sh-3);
+}
+
+.auth__title {
+    font-size: var(--fs-xl);
+    margin-block-end: var(--s-2);
+}
+
+.auth__lead {
+    color: var(--c-text-muted);
+    font-size: var(--fs-sm);
+    margin-block-end: var(--s-5);
+}
+
+.auth__form { display: grid; gap: var(--s-4); }
+
+.auth__card > .alert { margin-block-end: var(--s-4); }
+
+.auth__meta {
+    margin-block-start: var(--s-5);
+    padding-block-start: var(--s-4);
+    border-block-start: 1px solid var(--c-line);
+    font-size: var(--fs-sm);
+    color: var(--c-text-muted);
+    text-align: center;
+}
+
+/* Codigo de 6 digitos */
+.token-input {
+    text-align: center;
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    letter-spacing: 0.6em;
+    text-indent: 0.6em;
+    font-variant-numeric: tabular-nums;
+    padding-block: var(--s-3);
+}
+
+.reqs {
+    display: grid;
+    gap: var(--s-1);
+    font-size: var(--fs-xs);
+    color: var(--c-text-muted);
+    list-style: none;
+    padding: 0;
+}
+
+.reqs li {
+    display: flex;
+    gap: var(--s-2);
+    align-items: baseline;
+    padding-inline-start: var(--s-3);
+    position: relative;
+}
+
+/* Vinetas doradas en vez de numeros */
+.reqs li::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-start: 0.6em;
+    inline-size: 4px;
+    block-size: 4px;
+    border-radius: 50%;
+    background: var(--c-gold);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (min-width: 40rem) {
+    .auth__brand { padding-block: var(--s-7); }
+    .auth__logo { inline-size: 8.5rem; }
+    .auth__card { inline-size: min(100%, 28rem); padding: var(--s-6); }
+}
+
+@media (min-width: 64rem) {
+    /* La marca (columna izquierda) toma mas proporcion que el formulario, con
+       la derecha en minmax(36rem, 1fr).
+
+       El piso de 36rem = 576px NO es decorativo: son los 512px de la tarjeta
+       (.auth__card) mas los 64px de padding de .auth__main. Sin ese min, una
+       proporcion fija tipo 1.2fr/1fr en 1152px le daba a la derecha 524px y la
+       tarjeta se caia a 460px. A 1024px, con 1fr 1fr, la mitad son 512px y ya
+       no alcanzaba. El piso es lo que garantiza que agrandar la marca nunca
+       encoga el formulario.
+
+       En 1920 queda 1047/873 (54% la marca); en 1280, 698/582; y por debajo de
+       ~1152 el piso manda y se reparten mitad y mitad. */
+    .auth {
+        grid-template-rows: 1fr auto;
+        grid-template-columns: 1.2fr minmax(36rem, 1fr);
+    }
+
+    .auth__brand {
+        align-content: center;
+        justify-items: start;
+        text-align: start;
+        padding: var(--s-8) var(--s-7);
+        border-block-end: 0;
+        border-inline-end: 1px solid var(--c-line);
+    }
+
+    .auth__logo { inline-size: 11rem; }
+    .auth__institution { font-size: var(--fs-xl); }
+    .auth__tagline { font-size: var(--fs-md); }
+
+    .auth__main {
+        align-content: center;
+        padding: var(--s-7) var(--s-6);
+    }
+
+    /* Antes 25rem, o sea MAS angosta que los 26rem del breakpoint de 40rem:
+       entrar en el split screen encogia la tarjeta. Ahora sigue creciendo.
+
+       Y `margin-inline: auto` (no 0) para que quede CENTRADA en su columna.
+       Con 0 la tarjeta se pegaba al borde izquierdo de la celda, que en
+       pantallas anchas la dejaba descentrada contra el logo de la marca: a
+       1920 terminaba en x=1504 con 416px de vacio al costado, mientras la
+       marca si estaba al borde izquierdo. Centrada se equilibra con la marca. */
+    .auth__card { inline-size: min(100%, 32rem); margin-inline: auto; }
+
+    /* El boton de tema va sobre la columna de la MARCA, a la izquierda. A la
+       derecha se montaba encima de la tarjeta: con el form centrado en su
+       columna, entre 1024 y 1366 el toggle caia dentro del area de la tarjeta.
+       Solo a 1920 se salvaba, y de rebote, porque la tarjeta centrada dejaba
+       de llegar tan a la derecha. La marca es la unica zona libre en todo el
+       rango de anchos.
+
+       Se cambia solo la posicion: sigue siendo `position: fixed` de base.css
+       (no se redeclara aca), asi que no scrollea con la pagina, solo se corre
+       de esquina.
+
+       El selector tiene que ser `body:has(.auth)`, NO `.auth .theme-toggle`:
+       en estas paginas el toggle se emite suelto al final del body (ver
+       login.php), hermano de .auth y no descendiente, asi que el selector de
+       descendiente no matcheaba y la regla no llegaba a la cascada. :has()
+       engancha la pagina en vez del contenedor. */
+    body:has(.auth) .theme-toggle {
+        inset-inline-end: auto;
+        inset-inline-start: var(--s-4);
+    }
+
+    /* El pie es el parcial compartido, que emite .sitefoot y no lleva la
+       clase .auth__foot. Con selector de hijo en vez de una clase propia: si
+       el pie cae en una celda del grid de 2 columnas queda partido al 50%, y
+       esto no depende de que alguien se acuerde de agregar un clase. */
+    .auth > .sitefoot { grid-column: 1 / -1; }
+}

@@ -1,0 +1,181 @@
+/* ==========================================================================
+   votacion.css - pagina de votacion
+   ==========================================================================
+   Grid para las tarjetas de proyectos, Flex para las filas de una linea.
+   Mobile-first: una columna, rejilla desde 40rem.
+   ========================================================================== */
+
+.page__title {
+    font-size: var(--fs-2xl);
+    margin-block: var(--s-7) var(--s-4);
+    text-align: center;
+}
+
+.page__note { margin-block-end: var(--s-4); }
+
+/* ---------- Espera / countdown ---------- */
+
+.waiting {
+    display: grid;
+    gap: var(--s-4);
+    justify-items: center;
+    text-align: center;
+    margin-block: var(--s-5) var(--s-7);
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--r-md);
+}
+
+.waiting__lead { color: var(--c-text); font-size: var(--fs-md); }
+
+.countdown {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--s-2);
+    inline-size: min(100%, 22rem);
+}
+
+.countdown__cell {
+    display: grid;
+    gap: var(--s-1);
+    padding: var(--s-3) var(--s-2);
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-line);
+    border-radius: var(--r-sm);
+}
+
+.countdown__value {
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: var(--c-text-brand);
+}
+
+.countdown__label { font-size: var(--fs-xs); color: var(--c-text-muted); }
+
+/* ---------- Estado del usuario ---------- */
+
+.mystatus { margin-block-end: var(--s-5); }
+
+.mystatus__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+}
+
+.mystatus__name { display: flex; flex-direction: column; }
+
+.mystatus__label {
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--c-text-accent);
+}
+
+.mystatus__name strong { color: var(--c-text); }
+
+.mystatus__votes {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+}
+
+.mystatus__vote {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-1);
+    padding: 0.25em 0.8em;
+    border: 1px solid var(--c-line);
+    border-radius: var(--r-pill);
+    font-size: var(--fs-xs);
+    color: var(--c-text-muted);
+}
+
+.mystatus__vote .icon { color: var(--c-text-muted); }
+
+.mystatus__vote[data-voted='true'] {
+    background: var(--c-ok-bg);
+    border-color: var(--c-ok-line);
+    color: var(--c-ok-ink);
+    font-weight: 700;
+}
+.mystatus__vote[data-voted='true'] .icon { color: var(--c-ok); }
+
+/* ---------- Grupos de proyectos ---------- */
+
+.yeargroup { margin-block-end: var(--s-6); }
+
+.yeargroup__title {
+    font-size: var(--fs-xl);
+    padding-block-end: var(--s-2);
+    margin-block-end: var(--s-4);
+    border-block-end: 1px solid var(--c-line-gold);
+}
+
+.projects {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--s-3);
+}
+
+.project {
+    display: grid;
+    gap: var(--s-2);
+    align-content: start;
+    padding: var(--s-4);
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--r-md);
+    box-shadow: var(--sh-1);
+    transition: border-color var(--t-fast), background var(--t-fast),
+                transform var(--t-fast);
+}
+
+.project:hover { border-color: var(--c-line-strong); }
+
+.project__name { font-size: var(--fs-base); color: var(--c-text); }
+
+/* CTA de la tarjeta. En mobile ocupa todo el ancho de la tarjeta: es mas
+   facil de acertar con el dedo y queda alineado con el titulo. */
+.project__cta {
+    inline-size: 100%;
+    justify-content: center;
+}
+
+.project__count {
+    font-size: var(--fs-sm);
+    color: var(--c-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Estados que aplica el JS despues de votar */
+.project[data-voted='true'] {
+    background: var(--c-ok-bg);
+    border-color: var(--c-ok);
+    box-shadow: 0 0 0 1px var(--c-ok);
+}
+
+.project[data-muted='true'] {
+    background: var(--c-surface-2);
+    border-color: var(--c-danger-line);
+    opacity: 0.6;
+}
+
+.project[data-muted='true'] .project__name { color: var(--c-text-muted); }
+
+/* ---------- Responsive ---------- */
+
+@media (min-width: 40rem) {
+    .projects { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 64rem) {
+    .page__title { margin-block: var(--s-8) var(--s-5); }
+    .projects { grid-template-columns: repeat(3, 1fr); gap: var(--s-4); }
+}
