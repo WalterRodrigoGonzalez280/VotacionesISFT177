@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'conexion/conexion.php';
+require_once __DIR__ . '/../core/conexion.php';
 
 $logueado = !empty($_SESSION['logueado']) && $_SESSION['logueado'] === true;
 $es_admin = !empty($_SESSION['es_admin']) && $_SESSION['es_admin'] === true;
@@ -61,7 +61,7 @@ try {
 
 // Solo tiene sentido con sesion: sin ella no hay votos propios que mirar ni
 // a quien mandar a gracias.php.
-if ($logueado && !empty($_SESSION['usuario_id']) && !$es_admin) {
+if ($logueado && !empty($_SESSION['usuario_id'])) {
     try {
         $stmt = $pdo->prepare(
             'SELECT votos_1er_ano, votos_2do_ano, votos_3er_ano
@@ -107,6 +107,7 @@ try {
     }
 } catch (PDOException $e) {
     error_log('Votación: grupos: ' . $e->getMessage());
+    $error_bd = true;
 }
 
 $nombre_usuario = $_SESSION['usuario_nombre'] ?? '';
@@ -120,38 +121,30 @@ $nombre_usuario = $_SESSION['usuario_nombre'] ?? '';
     <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
          Las tipografias van en un parcial, con la precarga de los .woff2 y la
          hoja de @font-face: ver includes/fonts.php. -->
-    <?php include __DIR__ . '/includes/theme-inline.php'; ?>
-    <?php include __DIR__ . '/includes/fonts.php'; ?>
-    <link rel="stylesheet" href="css/base.css">
-    <link rel="stylesheet" href="css/votacion.css">
+    <?php include __DIR__ . '/../includes/theme-inline.php'; ?>
+    <?php include __DIR__ . '/../includes/fonts.php'; ?>
+    <link rel="stylesheet" href="../assets/css/base.css">
+    <link rel="stylesheet" href="../assets/css/votacion.css">
 </head>
 <body>
 <div class="shell">
     <a class="skip-link" href="#contenido">Ir al contenido</a>
 
-    <?php $nav_actual = 'votacion'; include __DIR__ . '/includes/site-header.php'; ?>
+    <?php $nav_actual = 'votacion'; include __DIR__ . '/../includes/site-header.php'; ?>
 
     <main class="shell__main" id="contenido">
         <div class="wrap wrap--wide">
 
             <h1 class="page__title">Elegí un proyecto por año</h1>
 
-                <?php if ($es_admin): ?>
-                    <p class="alert alert--info page__note" role="status">
-                        <svg class="icon icon--sm" aria-hidden="true"><use href="#i-config"></use></svg>
-                        <span>
-                            Estás como administrador: podés ver la votación pero no emitir votos.
-                            Usá el panel para gestionar usuarios y proyectos.
-                        </span>
-                    </p>
-                <?php elseif (!$logueado): ?>
+                <?php if (!$logueado): ?>
                     <p class="alert alert--info page__note" role="status">
                         <svg class="icon icon--sm" aria-hidden="true"><use href="#i-bloqueo"></use></svg>
                         <span>
                             Podés ver los proyectos, pero para emitir tu voto necesitás
-                            <a class="link" href="/login/login.php">iniciar sesión</a>.
+                            <a class="link" href="../auth/login.php">iniciar sesión</a>.
                             Si no tenés cuenta,
-                            <a class="link" href="/registro/registro.php">creá una</a>.
+                            <a class="link" href="../auth/registro.php">creá una</a>.
                         </span>
                     </p>
                 <?php endif; ?>
@@ -196,7 +189,7 @@ $nombre_usuario = $_SESSION['usuario_nombre'] ?? '';
                 </section>
             <?php else: ?>
 
-                <?php if ($logueado && !$es_admin): ?>
+                <?php if ($logueado): ?>
                     <section class="mystatus card" aria-labelledby="mi-estado">
                         <h2 class="visually-hidden">Mi estado de votación</h2>
                         <div class="mystatus__row">
@@ -247,7 +240,7 @@ $nombre_usuario = $_SESSION['usuario_nombre'] ?? '';
                                             </p>
                                         <?php endif; ?>
 
-                                        <?php if ($logueado && !$es_admin): ?>
+                                        <?php if ($logueado): ?>
                                             <button class="btn btn--primary project__cta"
                                                     type="button"
                                                     data-vote
@@ -258,9 +251,9 @@ $nombre_usuario = $_SESSION['usuario_nombre'] ?? '';
                                                 <svg class="icon" aria-hidden="true"><use href="#i-urna"></use></svg>
                                                 Votar
                                             </button>
-                                        <?php elseif (!$es_admin): ?>
+                                        <?php else: ?>
                                             <a class="btn btn--secondary project__cta"
-                                               href="/login/login.php">
+                                               href="/auth/login.php">
                                                 <svg class="icon" aria-hidden="true"><use href="#i-llave"></use></svg>
                                                 Ingresar para votar
                                             </a>
@@ -275,10 +268,10 @@ $nombre_usuario = $_SESSION['usuario_nombre'] ?? '';
         </div>
     </main>
 
-    <?php include __DIR__ . '/includes/site-footer.php'; ?>
+    <?php include __DIR__ . '/../includes/site-footer.php'; ?>
 </div>
 
-<script type="module" src="js/votacion.js"></script>
+<script type="module" src="../assets/js/votacion.js"></script>
 
 <!-- Confirmacion antes de emitir el voto. <dialog> nativo: foco atrapado,
      Escape y un alto accesible sin una linea de JS. El nombre del proyecto
@@ -303,6 +296,6 @@ $nombre_usuario = $_SESSION['usuario_nombre'] ?? '';
     </div>
 </dialog>
 
-<?php include __DIR__ . '/includes/iconos.php'; ?>
+<?php include __DIR__ . '/../includes/iconos.php'; ?>
 </body>
 </html>

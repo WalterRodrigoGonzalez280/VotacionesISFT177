@@ -4,6 +4,18 @@ require_once __DIR__ . '/class.pop3.php';
 require_once __DIR__ . '/class.phpmailer.php';
 
 /**
+ * Unico mensaje de fallo que ve la persona que se registra.
+ *
+ * El motivo REAL va siempre al error_log (y al diagnostico del admin via
+ * diagnosticoSmtp). Antes el usuario veia "falta configurar el SMTP
+ * (email_config)", que ademas de incomprendible le expone el nombre de la
+ * tabla y le pide arreglar algo que es del servidor y no suyo: no tiene
+ * forma de hacer nada con esa informacion. Un mensaje generico le deja claro
+ * que puede reintentar, que es lo unico que esta en sus manos.
+ */
+const MAIL_FALLA = 'El servicio de correo no está disponible en este momento. Intentá de nuevo más tarde.';
+
+/**
  * Envia el codigo de activacion por correo.
  *
  * Contrato: devuelve `true` si se envio, o un STRING con el motivo del fallo.
@@ -26,11 +38,13 @@ function enviarTokenPorEmail($correo, $token) {
         }
 
         if (empty($config['MAIL_USERNAME']) || empty($config['MAIL_PASSWORD'])) {
-            return 'No se pudo enviar el correo: falta configurar el SMTP (email_config).';
+            // El detalle va al log, no a la pantalla.
+            error_log('Email: falta MAIL_USERNAME/MAIL_PASSWORD en email_config.');
+            return MAIL_FALLA;
         }
     } catch (PDOException $e) {
         error_log('Email: cargando configuración: ' . $e->getMessage());
-        return 'No se pudo leer la configuración de correo.';
+        return MAIL_FALLA;
     }
 
     $mail = new PHPMailer(true);
@@ -42,7 +56,7 @@ function enviarTokenPorEmail($correo, $token) {
     //
     // La variante de 256 y no la de 480: en el correo se muestra a 112px, y
     // 256 cubre DPR 2. Pesa 9,4 KB contra 23,3 KB, en cada activacion.
-    $rutaLogo = __DIR__ . '/../Logo/logoisft177-256.png';
+    $rutaLogo = __DIR__ . '/../assets/Logo/logoisft177-256.png';
     $conLogo = is_file($rutaLogo);
 
     $contenido = plantillaActivacion(
@@ -81,7 +95,7 @@ function enviarTokenPorEmail($correo, $token) {
         return true;
     } catch (Exception $e) {
         error_log('Email: enviando a ' . $correo . ': ' . $e->getMessage());
-        return 'No pudimos enviar el correo. Revisá la configuración de SMTP.';
+        return MAIL_FALLA;
     }
 }
 
@@ -164,7 +178,7 @@ function plantillaActivacion($token, $sitioUrl, $conLogo) {
         $sitioUrl = '';
     }
 
-    $urlActivar = $sitioUrl !== '' ? $sitioUrl . '/registro/activar.php' : '';
+    $urlActivar = $sitioUrl !== '' ? $sitioUrl . '/auth/activar.php' : '';
 
     $logo = $conLogo
         ? '<img src="cid:logoimg" width="112" alt="ISFT 177"'

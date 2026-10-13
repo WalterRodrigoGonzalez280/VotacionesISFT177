@@ -24,6 +24,26 @@ services:
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./database/datos.sql:/docker-entrypoint-initdb.d/02-datos.sql:ro
     container_name: db
+    # Tuning para 9.5: shared_buffers = 25% de la RAM disponible al contenedor.
+    # work_mem = 4MB evita que sorts grandes tiren a disco.
+    # effective_cache_size = asume que el SO tiene ~1GB de cache disponible.
+    # max_connections = 20 es suficiente para PHP-FPM con conexiones persistentes.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=64MB
+      - -c
+      - effective_cache_size=512MB
+      - -c
+      - max_connections=20
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - default_statistics_target=100
     networks:
       - app-network
 

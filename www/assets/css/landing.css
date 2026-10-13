@@ -34,7 +34,7 @@
     border: 1px solid var(--c-line-strong);
     border-radius: var(--r-pill);
     background: var(--c-gold-tint);
-    color: var(--c-gold-soft);
+    color: var(--c-text-accent);
     font-size: var(--fs-xs);
     font-weight: 700;
     text-transform: uppercase;
@@ -48,13 +48,13 @@
 
 .hero__lead {
     max-inline-size: 40ch;
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     font-size: var(--fs-md);
 }
 
 .hero__state { display: grid; justify-items: center; gap: var(--s-2); }
 
-.hero__detail { font-size: var(--fs-sm); color: var(--c-muted); }
+.hero__detail { font-size: var(--fs-sm); color: var(--c-text-muted); }
 
 .hero__range {
     display: inline-flex;
@@ -63,11 +63,11 @@
     justify-content: center;
     gap: var(--s-1);
     font-size: var(--fs-sm);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
 }
 
-.hero__range .icon { color: var(--c-gold-soft); }
-.hero__range time { white-space: nowrap; color: var(--c-white); }
+.hero__range .icon { color: var(--c-text-accent); }
+.hero__range time { white-space: nowrap; color: var(--c-text); }
 
 .hero__actions {
     display: flex;
@@ -83,17 +83,17 @@
 
 .landing__block { display: grid; gap: var(--s-3); }
 
-.landing__block p { color: var(--c-muted); }
+.landing__block p { color: var(--c-text-muted); }
 
 .landing__note {
     display: flex;
     align-items: flex-start;
     gap: var(--s-2);
     font-size: var(--fs-sm);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
 }
 
-.landing__note .icon { color: var(--c-gold-soft); margin-block-start: 0.15em; }
+.landing__note .icon { color: var(--c-text-accent); margin-block-start: 0.15em; }
 
 /* NO hay estilos de ganadores aca: la landing no los muestra, el resultado es
    del panel de administracion (ver admin.css, que tiene su propia version con
@@ -137,14 +137,14 @@
     padding: 0.75rem;
     border-radius: 50%;
     background: var(--c-gold);
-    color: var(--c-on-gold);
+    color: var(--c-text-on-primary);
     border: 1px solid var(--c-gold-dark);
     box-shadow: var(--sh-2);
 }
 
 .howto__title { font-size: var(--fs-md); margin-block-end: var(--s-1); }
 
-.howto__text { font-size: var(--fs-sm); color: var(--c-muted); }
+.howto__text { font-size: var(--fs-sm); color: var(--c-text-muted); }
 
 /* ---------- Responsive, mobile-first ---------- */
 

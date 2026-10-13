@@ -33,14 +33,14 @@
 .auth__institution {
     font-family: var(--font-display);
     font-size: var(--fs-lg);
-    color: var(--c-gold-text);
+    color: var(--c-text-brand);
     line-height: var(--lh-tight);
 }
 
 .auth__tagline {
     max-inline-size: 24rem;
     font-size: var(--fs-sm);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
 }
 
 /* ---------- Formulario ---------- */
@@ -73,7 +73,7 @@
 }
 
 .auth__lead {
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     font-size: var(--fs-sm);
     margin-block-end: var(--s-5);
 }
@@ -87,7 +87,7 @@
     padding-block-start: var(--s-4);
     border-block-start: 1px solid var(--c-line);
     font-size: var(--fs-sm);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     text-align: center;
 }
 
@@ -106,7 +106,7 @@
     display: grid;
     gap: var(--s-1);
     font-size: var(--fs-xs);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     list-style: none;
     padding: 0;
 }

@@ -7,7 +7,7 @@
  * correspondiente sin que se pierda nada de lo escrito.
  */
 session_start();
-require_once __DIR__ . '/../conexion/conexion.php';
+require_once __DIR__ . '/../core/conexion.php';
 require_once __DIR__ . '/../phpMail/enviar_correo.php';
 require_once __DIR__ . '/../includes/flash.php';
 
@@ -20,8 +20,14 @@ $errores = [];
 
 if ($usuario === '') {
     $errores['usuario'] = 'Escribí un nombre de usuario.';
-} elseif (!preg_match('/^[a-zA-Z]{3,20}$/', $usuario)) {
-    $errores['usuario'] = 'El nombre debe tener entre 3 y 20 letras, sin números ni espacios.';
+} elseif (mb_strlen($usuario) > 50) {
+    // El limite lo impone la columna: `nombre varchar(50)`.
+    $errores['usuario'] = 'El nombre puede tener hasta 50 caracteres.';
+} elseif (!preg_match('/^[\p{L}\p{N} .\'_-]+$/u', $usuario)) {
+    // Se bloquea solo lo que puede generar conflictos (control, <>&", /, ;,
+    // %, #, =, emoji, etc.). Las letras de cualquier alfabeto, los numeros,
+    // los espacios y . ' _ - estan permitidos.
+    $errores['usuario'] = 'El nombre solo puede tener letras, números, espacios y los signos . - _ \'.';
 }
 
 if ($correo === '') {
@@ -47,7 +53,7 @@ try {
     if ($existente && (int)$existente['activo'] === 1) {
         flash_remember(['usuario' => $usuario, 'correo' => $correo]);
         flash_set('error', 'Ese correo ya tiene una cuenta activa. Iniciá sesión.');
-        header('Location: ../login/login.php');
+        header('Location: login.php');
         exit;
     }
 

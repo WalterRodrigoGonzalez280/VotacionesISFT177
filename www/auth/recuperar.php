@@ -1,7 +1,7 @@
 <?php
 session_start();
-require_once __DIR__ . '/../conexion/conexion.php';
-require_once __DIR__ . '/../registro/generar_token.php';
+require_once __DIR__ . '/../core/conexion.php';
+require_once __DIR__ . '/../core/generar_token.php';
 
 $mensaje = '';
 $tipo = 'error';
@@ -61,8 +61,8 @@ $titulo = 'Recuperar contraseña';
          hoja de @font-face: ver includes/fonts.php. -->
     <?php include __DIR__ . '/../includes/theme-inline.php'; ?>
     <?php include __DIR__ . '/../includes/fonts.php'; ?>
-    <link rel="stylesheet" href="../css/base.css">
-    <link rel="stylesheet" href="../css/auth.css">
+    <link rel="stylesheet" href="../assets/css/base.css">
+    <link rel="stylesheet" href="../assets/css/auth.css">
 </head>
 <body>
 <div class="auth">
@@ -71,14 +71,14 @@ $titulo = 'Recuperar contraseña';
         <?php /* Mismo srcset que en login.php, y por el mismo motivo: el webp
                   de 480 pesa mas que el PNG y bloqueaba el srcset. Los
                   breakpoints del sizes son los de auth.css. */ ?>
-        <img src="../Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177"
+        <img src="../assets/Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177"
              class="auth__logo"
              sizes="(min-width: 64rem) 176px, (min-width: 40rem) 136px, 112px"
-             srcset="../Logo/logoisft177-96.png 96w,
-                     ../Logo/logoisft177-160.png 160w,
-                     ../Logo/logoisft177-192.png 192w,
-                     ../Logo/logoisft177-256.png 256w,
-                     ../Logo/logoisft177-480.png 480w">
+             srcset="../assets/Logo/logoisft177-96.png 96w,
+                     ../assets/Logo/logoisft177-160.png 160w,
+                     ../assets/Logo/logoisft177-192.png 192w,
+                     ../assets/Logo/logoisft177-256.png 256w,
+                     ../assets/Logo/logoisft177-480.png 480w">
         <p class="auth__institution">ISFT N° 177</p>
         <p class="auth__tagline">
             Exposición de proyectos de Prácticas Profesionalizantes.
@@ -129,7 +129,7 @@ $titulo = 'Recuperar contraseña';
 
 </div>
 
-<script type="module" src="../js/validate.js"></script>
+<script type="module" src="../assets/js/validate.js"></script>
 
 <?php if ($destino !== ''): ?>
 <script>
@@ -149,7 +149,7 @@ $titulo = 'Recuperar contraseña';
         <svg class="icon" aria-hidden="true"><use href="#i-luna"></use></svg>
     </button>
 </div>
-<script type="module" src="../js/theme.js"></script>
+<script type="module" src="../assets/js/theme.js"></script>
 
 <?php include __DIR__ . '/../includes/iconos.php'; ?>
 </body>

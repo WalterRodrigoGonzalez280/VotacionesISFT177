@@ -15,11 +15,17 @@
  * y evita el doble envio por doble clic.
  */
 
-const ENDPOINT = 'api.php';
+const ENDPOINT = '/api/';
 
-const dialog = document.querySelector('[data-confirm]');
-const projectName = document.querySelector('[data-confirm-proyecto]');
-const yearName = document.querySelector('[data-confirm-anio]');
+let dialog = null;
+let projectName = null;
+let yearName = null;
+
+function cacheDOM() {
+  dialog = document.querySelector('[data-confirm]');
+  projectName = document.querySelector('[data-confirm-proyecto]');
+  yearName = document.querySelector('[data-confirm-anio]');
+}
 
 /** Voto pendiente de confirmar: lo guarda el boton que abrio el dialog. */
 let pendiente = null;
@@ -129,7 +135,7 @@ async function confirmarVoto() {
     if (status === 401) {
       notify('Tu sesión venció. Volvé a iniciar sesión para votar.', 'error');
       window.setTimeout(() => {
-        window.location.href = '/login/login.php';
+        window.location.href = '/auth/login.php';
       }, 2000);
       return;
     }
@@ -149,9 +155,13 @@ async function confirmarVoto() {
   markGroupVoted(groupId, subgrupoId);
   notify(data.message || 'Voto registrado.');
 
+  // Ruta absoluta desde la raiz del docroot (www/), que es donde Apache
+  // sirve. Tras la migracion de carpetas la pagina quedo en /public/, pero
+  // este redirect seguia apuntando a /gracias.php: devolvia 404 al cerrar la
+  // votacion. Mismo criterio que /auth/login.php del bloque de sesion vencida.
   if (data.votos_completos === true) {
     window.setTimeout(() => {
-      window.location.href = '/gracias.php';
+      window.location.href = '/public/gracias.php';
     }, 2000);
   }
 }
@@ -171,12 +181,10 @@ function paintUserStatus(usuario) {
   });
 }
 
-/** El admin ve la pagina pero no vota: se deshabilitan los botones. */
+/** El admin ve la pagina y vota: no se deshabilitan los botones. */
 function lockForAdmin() {
-  document.querySelectorAll('[data-vote]').forEach((button) => {
-    button.disabled = true;
-    button.replaceChildren(document.createTextNode('Solo participantes'));
-  });
+  // Los administradores ahora pueden votar como cualquier participante.
+  // Esta función se mantiene por compatibilidad pero no hace nada.
 }
 
 async function loadUserStatus() {
@@ -192,10 +200,6 @@ async function loadUserStatus() {
   }
 
   paintUserStatus(data.usuario);
-
-  if (data.es_admin === true) {
-    lockForAdmin();
-  }
 }
 
 /* --------------------------------------------------------------- countdown */
@@ -262,11 +266,21 @@ document.addEventListener('click', (event) => {
   }
 });
 
-// Escape cierra el dialog: se limpia el voto pendiente para que al reabrir
-// no quede el de un proyecto anterior.
-dialog?.addEventListener('cancel', () => {
-  pendiente = null;
-});
+function init() {
+  cacheDOM();
 
-loadUserStatus();
-startCountdown();
+  // Escape cierra el dialog: se limpia el voto pendiente para que al reabrir
+  // no quede el de un proyecto anterior.
+  dialog?.addEventListener('cancel', () => {
+    pendiente = null;
+  });
+
+  loadUserStatus();
+  startCountdown();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

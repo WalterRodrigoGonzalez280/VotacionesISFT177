@@ -27,7 +27,11 @@ $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     PDO::ATTR_EMULATE_PREPARES   => false,
-    PDO::ATTR_TIMEOUT            => 10
+    PDO::ATTR_TIMEOUT            => 10,
+    // Conexion persistente: reusa el socket TCP entre requests en vez de
+    // abrir y cerrar una conexion nueva por cada pagina. Ahorra el handshake
+    // completo (TCP + auth + SET TIME ZONE) en cada request.
+    PDO::ATTR_PERSISTENT         => true,
 ];
 
 /**
@@ -43,10 +47,8 @@ $options = [
  * desarrollo se imprimia el mensaje crudo; ahora es siempre el mismo texto.
  */
 function paginaBaseCaida() {
-    // El CSS vive en /css, pero esta pagina se sirve desde / o desde /login/.
-    $ruta_script = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
-    $en_subcarpeta = strpos($ruta_script, '/', 1) !== false;
-    $base_css = $en_subcarpeta ? '../css' : 'css';
+    // CSS ahora en /assets/css (ruta absoluta desde la raiz web)
+    $base_css = '/assets/css';
 ?>
 <!DOCTYPE html>
 <html lang="es">

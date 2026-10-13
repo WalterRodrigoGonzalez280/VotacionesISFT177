@@ -19,8 +19,8 @@ $titulo = 'Crear una cuenta';
          hoja de @font-face: ver includes/fonts.php. -->
     <?php include __DIR__ . '/../includes/theme-inline.php'; ?>
     <?php include __DIR__ . '/../includes/fonts.php'; ?>
-    <link rel="stylesheet" href="../css/base.css">
-    <link rel="stylesheet" href="../css/auth.css">
+    <link rel="stylesheet" href="../assets/css/base.css">
+    <link rel="stylesheet" href="../assets/css/auth.css">
 </head>
 <body>
 <div class="auth">
@@ -29,14 +29,14 @@ $titulo = 'Crear una cuenta';
         <?php /* Mismo srcset que en login.php, y por el mismo motivo: el webp
                   de 480 pesa mas que el PNG y bloqueaba el srcset. Los
                   breakpoints del sizes son los de auth.css. */ ?>
-        <img src="../Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177"
+        <img src="../assets/Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177"
              class="auth__logo"
              sizes="(min-width: 64rem) 176px, (min-width: 40rem) 136px, 112px"
-             srcset="../Logo/logoisft177-96.png 96w,
-                     ../Logo/logoisft177-160.png 160w,
-                     ../Logo/logoisft177-192.png 192w,
-                     ../Logo/logoisft177-256.png 256w,
-                     ../Logo/logoisft177-480.png 480w">
+             srcset="../assets/Logo/logoisft177-96.png 96w,
+                     ../assets/Logo/logoisft177-160.png 160w,
+                     ../assets/Logo/logoisft177-192.png 192w,
+                     ../assets/Logo/logoisft177-256.png 256w,
+                     ../assets/Logo/logoisft177-480.png 480w">
         <p class="auth__institution">ISFT N° 177</p>
         <p class="auth__tagline">
             Exposición de proyectos de Prácticas Profesionalizantes.
@@ -71,16 +71,14 @@ $titulo = 'Crear una cuenta';
                         id="usuario"
                         name="usuario"
                         value="<?= htmlspecialchars($old['usuario'] ?? '') ?>"
-                        minlength="3"
-                        maxlength="20"
-                        pattern="[a-zA-Z]{3,20}"
+                        maxlength="50"
                         autocomplete="username"
                         aria-describedby="hint-usuario"
                         <?= isset($old['usuario']) && $old['usuario'] !== '' ? 'autofocus' : '' ?>
                         required>
                     <p class="field__hint" id="hint-usuario">
                         <svg class="icon icon--sm" aria-hidden="true"><use href="#i-info"></use></svg>
-                        Entre 3 y 20 letras, sin números ni espacios.
+                        Hasta 50 caracteres. Letras, números, espacios y los signos . - _ '.
                     </p>
                 </div>
 
@@ -111,7 +109,7 @@ $titulo = 'Crear una cuenta';
             </form>
 
             <p class="auth__meta">
-                ¿Ya tenés cuenta? <a class="link" href="../login/login.php">Iniciá sesión</a>
+                ¿Ya tenés cuenta? <a class="link" href="login.php">Iniciá sesión</a>
             </p>
         </div>
     </main>
@@ -120,7 +118,7 @@ $titulo = 'Crear una cuenta';
 
 </div>
 
-<script type="module" src="../js/validate.js"></script>
+<script type="module" src="../assets/js/validate.js"></script>
 
 <!-- Boton de tema: flotante, asi no hay que insertarlo en el markup
      diferente de cada pagina. -->
@@ -130,7 +128,7 @@ $titulo = 'Crear una cuenta';
         <svg class="icon" aria-hidden="true"><use href="#i-luna"></use></svg>
     </button>
 </div>
-<script type="module" src="../js/theme.js"></script>
+<script type="module" src="../assets/js/theme.js"></script>
 
 <?php include __DIR__ . '/../includes/iconos.php'; ?>
 </body>

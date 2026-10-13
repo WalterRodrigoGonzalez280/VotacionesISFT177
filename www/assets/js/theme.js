@@ -15,11 +15,18 @@
  */
 
 const STORAGE_KEY = 'isft177-tema';
-const RAIZ = document.documentElement;
+
+let RAIZ = null;
+let mql = null;
+
+function cacheDOM() {
+  RAIZ = document.documentElement;
+  mql = window.matchMedia('(prefers-color-scheme: dark)');
+}
 
 /** El tema que se esta mostrando ahora. */
 function temaActual() {
-  return RAIZ.getAttribute('data-theme') || (mql.matches ? 'dark' : 'light');
+  return RAIZ?.getAttribute('data-theme') || (mql?.matches ? 'dark' : 'light');
 }
 
 /** Guarda la preferencia y la aplica al momento. */
@@ -33,8 +40,6 @@ function aplicar(tema) {
   pintarBotones(tema);
 }
 
-const mql = window.matchMedia('(prefers-color-scheme: dark)');
-
 /** Refleja el estado actual en todos los botones [data-theme-toggle]. */
 function pintarBotones(tema) {
   const oscuro = tema === 'dark';
@@ -46,25 +51,35 @@ function pintarBotones(tema) {
   });
 }
 
-document.addEventListener('click', (event) => {
-  const boton = event.target.closest('[data-theme-toggle]');
-  if (!boton) return;
-  aplicar(temaActual() === 'dark' ? 'light' : 'dark');
-});
+function init() {
+  cacheDOM();
 
-/* Si la persona cambia el tema del sistema y no eligio uno a mano, se
-   acompanha el cambio en vivo. */
-mql.addEventListener('change', () => {
-  let guardado = null;
-  try {
-    guardado = localStorage.getItem(STORAGE_KEY);
-  } catch {
-    guardado = null;
-  }
-  if (!guardado) {
-    RAIZ.setAttribute('data-theme', mql.matches ? 'dark' : 'light');
-    pintarBotones(temaActual());
-  }
-});
+  document.addEventListener('click', (event) => {
+    const boton = event.target.closest('[data-theme-toggle]');
+    if (!boton) return;
+    aplicar(temaActual() === 'dark' ? 'light' : 'dark');
+  });
 
-pintarBotones(temaActual());
+  /* Si la persona cambia el tema del sistema y no eligio uno a mano, se
+     acompanha el cambio en vivo. */
+  mql?.addEventListener('change', () => {
+    let guardado = null;
+    try {
+      guardado = localStorage.getItem(STORAGE_KEY);
+    } catch {
+      guardado = null;
+    }
+    if (!guardado) {
+      RAIZ?.setAttribute('data-theme', mql?.matches ? 'dark' : 'light');
+      pintarBotones(temaActual());
+    }
+  });
+
+  pintarBotones(temaActual());
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

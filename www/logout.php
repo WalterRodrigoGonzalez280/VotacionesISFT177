@@ -6,6 +6,6 @@ session_unset();
 session_destroy();
 
 // Redirigir a la página de despedida
-header('Location: despedida.php');
+header('Location: public/despedida.php');
 exit;
 ?>

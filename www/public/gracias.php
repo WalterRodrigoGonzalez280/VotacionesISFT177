@@ -1,14 +1,14 @@
 <?php
 session_start();
-require_once __DIR__ . '/conexion/conexion.php';
+require_once __DIR__ . '/../core/conexion.php';
 
 if (empty($_SESSION['logueado']) || $_SESSION['logueado'] !== true) {
-    header('Location: login/login.php');
+    header('Location: ../auth/login.php');
     exit;
 }
 
 if (!empty($_SESSION['es_admin']) && $_SESSION['es_admin'] === true) {
-    header('Location: admin.php');
+    header('Location: ../admin/');
     exit;
 }
 
@@ -54,14 +54,14 @@ $titulo = '¡Gracias por tu voto!';
     <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
          Las tipografias van en un parcial, con la precarga de los .woff2 y la
          hoja de @font-face: ver includes/fonts.php. -->
-    <?php include __DIR__ . '/includes/theme-inline.php'; ?>
-    <?php include __DIR__ . '/includes/fonts.php'; ?>
-    <link rel="stylesheet" href="css/base.css">
-    <link rel="stylesheet" href="css/closing.css">
+    <?php include __DIR__ . '/../includes/theme-inline.php'; ?>
+    <?php include __DIR__ . '/../includes/fonts.php'; ?>
+    <link rel="stylesheet" href="../assets/css/base.css">
+    <link rel="stylesheet" href="../assets/css/closing.css">
 </head>
 <body>
 <div class="shell">
-<?php $nav_actual = 'gracias'; include __DIR__ . '/includes/site-header.php'; ?>
+<?php $nav_actual = 'gracias'; include __DIR__ . '/../includes/site-header.php'; ?>
 
         <main class="shell__main closing" id="contenido">
 
@@ -99,15 +99,15 @@ $titulo = '¡Gracias por tu voto!';
                 de cada año y el ganador general entre todos los grupos.
             </p>
 
-            <a class="btn btn--primary" href="logout.php">Cerrar sesión</a>
+            <a class="btn btn--primary" href="../logout.php">Cerrar sesión</a>
         </div>
 
     </main>
 
-    <?php include __DIR__ . '/includes/site-footer.php'; ?>
+    <?php include __DIR__ . '/../includes/site-footer.php'; ?>
 </div>
 
 <?php /* theme.js lo carga site-header.php, que es donde esta el boton. */ ?>
-<?php include __DIR__ . '/includes/iconos.php'; ?>
+<?php include __DIR__ . '/../includes/iconos.php'; ?>
 </body>
 </html>

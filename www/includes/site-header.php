@@ -22,23 +22,23 @@ $nav_actual = $nav_actual ?? '';
 // navegador resuelve un href relativo contra la URL de la pagina, no contra
 // la del parcial.
 $secciones = [
-    'inicio' => ['Inicio', '/index.php'],
+    'inicio' => ['Inicio', '/public/index.php'],
 ];
 if ($logueado) {
-    $secciones['votacion'] = ['Votar', '/votacion.php'];
+    $secciones['votacion'] = ['Votar', '/public/votacion.php'];
     if ($es_admin) {
-        $secciones['admin'] = ['Panel', '/admin.php'];
+        $secciones['admin'] = ['Panel', '/admin/'];
     }
 }
 if (!$logueado) {
-    $secciones['registro'] = ['Crear cuenta', '/registro/registro.php'];
-    $secciones['login'] = ['Ingresar', '/login/login.php'];
+    $secciones['registro'] = ['Crear cuenta', '/auth/registro.php'];
+    $secciones['login'] = ['Ingresar', '/auth/login.php'];
 }
 ?>
 <header class="sitebar">
     <div class="sitebar__inner wrap wrap--wide">
 
-        <a class="sitebar__brand" href="/index.php">
+        <a class="sitebar__brand" href="/public/index.php">
             <?php /* Durante un tiempo se sirvio un unico 480 px. Se probo bajar
                       el logo a 192 px para ahorrar 30 KB y se vio borroso: el
                       escudo tiene lettering chico adentro y a 40 px de alto se
@@ -60,13 +60,13 @@ if (!$logueado) {
                       era lo que Lighthouse medi como CLS 0,112. Todas las
                       variantes son cuadradas, asi que la relacion de aspecto
                       sigue siendo 1:1 y el CLS no cambia. */ ?>
-            <img src="/Logo/logoisft177-480.png" alt="" class="sitebar__logo"
+            <img src="/assets/Logo/logoisft177-480.png" alt="" class="sitebar__logo"
                  width="480" height="480" aria-hidden="true"
                  sizes="44px"
-                 srcset="/Logo/logoisft177-96.png 96w,
-                         /Logo/logoisft177-160.png 160w,
-                         /Logo/logoisft177-192.png 192w,
-                         /Logo/logoisft177-480.png 480w">
+                 srcset="/assets/Logo/logoisft177-96.png 96w,
+                         /assets/Logo/logoisft177-160.png 160w,
+                         /assets/Logo/logoisft177-192.png 192w,
+                         /assets/Logo/logoisft177-480.png 480w">
             <span class="sitebar__text">
                 <span class="sitebar__title">Votación de Proyectos</span>
                 <?php /* El año sale de la base (anioVotacion). El function_exists
@@ -142,5 +142,5 @@ if (!$logueado) {
        contra la URL de la pagina, no contra la del parcial, asi que
        "js/menu.js" se romperia (/login/js/menu.js) en cuanto una pagina de
        subdirectorio use este encabezado. Igual que los href de arriba. */ ?>
-<script type="module" src="/js/menu.js"></script>
-<script type="module" src="/js/theme.js"></script>
+<script type="module" src="/assets/js/menu.js"></script>
+<script type="module" src="/assets/js/theme.js"></script>

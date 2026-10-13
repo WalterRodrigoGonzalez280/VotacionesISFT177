@@ -32,18 +32,18 @@ div[data-config] {
     background: transparent;
     border: 0;
     border-block-end: 3px solid transparent;
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     font-size: var(--fs-sm);
     font-weight: 700;
     white-space: nowrap;
     transition: color var(--t-fast), border-color var(--t-fast);
 }
 
-.tabs__tab:hover { color: var(--c-gold-text); }
+.tabs__tab:hover { color: var(--c-text-brand); }
 
 .tabs__tab[aria-selected='true'] {
-    color: var(--c-gold-text);
-    border-block-end-color: var(--c-gold-text);
+    color: var(--c-text-brand);
+    border-block-end-color: var(--c-text-brand);
 }
 
 .tabs__panel[hidden] { display: none; }
@@ -68,7 +68,7 @@ div[data-config] {
 .panel__error {
     padding: var(--s-5);
     text-align: center;
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     font-size: var(--fs-sm);
     background: var(--c-surface-2);
     border: 1px dashed var(--c-line-strong);
@@ -120,12 +120,23 @@ div[data-config] {
     vertical-align: middle;
 }
 
+.table__rol,
+.table__estado {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.table__rol .badge,
+.table__estado .badge {
+    vertical-align: middle;
+}
+
 .table thead th {
     background: var(--c-surface-2);
     font-size: var(--fs-xs);
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--c-gold-soft);
+    color: var(--c-text-accent);
     font-weight: 700;
 }
 
@@ -133,8 +144,8 @@ div[data-config] {
 .table tbody tr:hover { background: var(--c-surface-3); }
 
 .table__num { font-variant-numeric: tabular-nums; white-space: nowrap; }
-.table__email { word-break: break-all; color: var(--c-muted); }
-.table__detail { color: var(--c-muted); max-inline-size: 22rem; }
+.table__email { word-break: break-all; color: var(--c-text-muted); }
+.table__detail { color: var(--c-text-muted); max-inline-size: 22rem; }
 
 .table__actions { display: flex; gap: var(--s-1); }
 
@@ -151,15 +162,15 @@ div[data-config] {
     background: var(--c-surface-2);
     border: 1px solid var(--c-line);
     border-radius: var(--r-sm);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
 }
 
 .icon-btn .icon { inline-size: 1.05rem; block-size: 1.05rem; }
 
 .icon-btn:hover {
-    border-color: var(--c-gold-text);
-    color: var(--c-gold-text);
+    border-color: var(--c-text-brand);
+    color: var(--c-text-brand);
     background: var(--c-gold-tint);
 }
 
@@ -167,6 +178,112 @@ div[data-config] {
     border-color: var(--c-danger);
     color: var(--c-danger-ink);
     background: var(--c-danger-bg);
+}
+
+.icon-btn.is-disabled,
+.icon-btn.is-disabled:hover {
+    opacity: 0.4;
+    cursor: not-allowed;
+    border-color: var(--c-line);
+    color: var(--c-text-muted);
+    background: var(--c-surface-2);
+}
+
+/* ---------- Badges ---------- */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.1rem 0.45rem;
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-radius: var(--r-sm);
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
+.badge--success {
+    background: var(--c-ok-bg);
+    color: var(--c-ok-ink);
+    border: 1px solid var(--c-ok-line);
+}
+
+.badge--warning {
+    background: var(--c-warn-bg);
+    color: var(--c-warn-ink);
+    border: 1px solid var(--c-warn-line);
+}
+
+.badge--danger {
+    background: var(--c-danger-bg);
+    color: var(--c-danger-ink);
+    border: 1px solid var(--c-danger-line);
+}
+
+.table__rol,
+.table__estado { white-space: nowrap; }
+
+/* ---------- Usuarios: toolbar y paginación ---------- */
+
+.users-toolbar {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--s-2);
+    margin-block-end: var(--s-3);
+    align-items: stretch;
+}
+
+/* Override .field__input { inline-size: 100% } — sin esto cada campo
+   toma el 100% del contenedor y se apilan. */
+.users-toolbar .field__input {
+    inline-size: auto;
+    padding: 0.35em 0.6em;
+    font-size: var(--fs-sm);
+}
+
+.users-toolbar__search {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+}
+
+.users-toolbar__select {
+    flex: 0 0 auto;
+    inline-size: 9rem;
+    min-inline-size: 0;
+}
+
+.users-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s-3);
+    margin-block-start: var(--s-3);
+    flex-wrap: wrap;
+}
+
+.users-pagination__info {
+    font-size: var(--fs-sm);
+    color: var(--c-text-muted);
+}
+
+.users-pagination .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+@media (max-width: 40rem) {
+    .users-toolbar {
+        flex-wrap: wrap;
+    }
+    .users-toolbar__search {
+        flex: 1 1 100%;
+    }
+    .users-toolbar__select {
+        flex: 1 1 calc(50% - var(--s-2));
+        inline-size: auto;
+    }
 }
 
 /* ---------- Grupos ---------- */
@@ -197,8 +314,8 @@ div[data-config] {
 .groupitem:hover { border-color: var(--c-line-strong); }
 
 .groupitem__info { display: grid; gap: var(--s-1); min-inline-size: 0; }
-.groupitem__name { font-size: var(--fs-sm); color: var(--c-white); overflow-wrap: anywhere; }
-.groupitem__count { font-size: var(--fs-xs); color: var(--c-muted); }
+.groupitem__name { font-size: var(--fs-sm); color: var(--c-text); overflow-wrap: anywhere; }
+.groupitem__count { font-size: var(--fs-xs); color: var(--c-text-muted); }
 .groupitem__actions { display: flex; gap: var(--s-1); flex: none; }
 
 /* ---------- Ganadores ---------- */
@@ -219,19 +336,19 @@ div[data-config] {
 .winnerbox--overall {
     background: var(--c-gold-tint);
     border-color: var(--c-line-strong);
-    border-inline-start-color: var(--c-gold-text);
+    border-inline-start-color: var(--c-text-brand);
 }
 
 .winnerbox__group {
     font-size: var(--fs-xs);
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--c-gold-soft);
+    color: var(--c-text-accent);
     font-weight: 700;
 }
 
-.winnerbox__name { font-size: var(--fs-md); font-weight: 700; color: var(--c-white); }
-.winnerbox__count { font-size: var(--fs-sm); color: var(--c-muted); }
+.winnerbox__name { font-size: var(--fs-md); font-weight: 700; color: var(--c-text); }
+.winnerbox__count { font-size: var(--fs-sm); color: var(--c-text-muted); }
 
 /* ---------- Configuracion ---------- */
 

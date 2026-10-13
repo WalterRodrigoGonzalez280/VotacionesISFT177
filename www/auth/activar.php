@@ -13,8 +13,15 @@
  * la contrasena. La condicion correcta es si hay token pendiente o no.
  */
 session_start();
-require_once __DIR__ . '/../conexion/conexion.php';
-require_once __DIR__ . '/generar_token.php';
+
+// La contraseña viaja en el POST y, cuando la validación falla, se vuelve a
+// escribir en el HTML (value de los inputs) para no perder lo que la persona
+// escribió. Sin estas cabeceras el navegador podría guardarla en caché o
+// mostrarla al volver con el botón "atrás".
+header('Cache-Control: no-store, no-cache, must-revalidate');
+
+require_once __DIR__ . '/../core/conexion.php';
+require_once __DIR__ . '/../core/generar_token.php';
 
 if (empty($_SESSION['user_email'])) {
     header('Location: registro.php');
@@ -25,6 +32,12 @@ $user_email = $_SESSION['user_email'];
 $error = '';
 $info = '';
 $redirigir = false;
+
+// Lo que se escribió en el POST, para poder repoblar el formulario si la
+// validación falla. Solo se usan en el camino de error: ver $repoblar.
+$viejo_token = '';
+$viejo_password = '';
+$viejo_confirm = '';
 
 $stmt = $pdo->prepare('SELECT token, activo FROM usuarios WHERE email = ?');
 $stmt->execute([$user_email]);
@@ -48,6 +61,13 @@ if ($pide_codigo) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    // Se capturan antes del branch de validación: si algo falla, el formulario
+    // se re-renderiza y hay que devolver lo que se escribió (a diferencia del
+    // registro, que redirige y lo guarda en sesión).
+    $viejo_token = trim($_POST['token'] ?? '');
+    $viejo_password = $_POST['password'] ?? '';
+    $viejo_confirm = $_POST['confirm_password'] ?? '';
 
     if (isset($_POST['generar_token'])) {
         // `=== true` es obligatorio: el string de error es truthy en PHP.
@@ -105,6 +125,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $titulo = $pide_codigo ? 'Confirmar operación' : 'Definir contraseña';
+
+/* Trade-off de seguridad: la contraseña vuelve al HTML solo en el camino de
+   error ($error !== ''), que es la propia persona en su propio equipo. En el
+   camino exitoso los campos quedan vacíos, así nada sensible queda escrito en
+   la página de éxito que se muestra 2,5 s antes del redirect a login; además
+   el no-store de arriba evita que el navegador lo cachee. */
+$repoblar = ($error !== '');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -117,8 +144,8 @@ $titulo = $pide_codigo ? 'Confirmar operación' : 'Definir contraseña';
          hoja de @font-face: ver includes/fonts.php. -->
     <?php include __DIR__ . '/../includes/theme-inline.php'; ?>
     <?php include __DIR__ . '/../includes/fonts.php'; ?>
-    <link rel="stylesheet" href="../css/base.css">
-    <link rel="stylesheet" href="../css/auth.css">
+    <link rel="stylesheet" href="../assets/css/base.css">
+    <link rel="stylesheet" href="../assets/css/auth.css">
 </head>
 <body>
 <div class="auth">
@@ -127,14 +154,14 @@ $titulo = $pide_codigo ? 'Confirmar operación' : 'Definir contraseña';
         <?php /* Mismo srcset que en login.php, y por el mismo motivo: el webp
                   de 480 pesa mas que el PNG y bloqueaba el srcset. Los
                   breakpoints del sizes son los de auth.css. */ ?>
-        <img src="../Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177"
+        <img src="../assets/Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177"
              class="auth__logo"
              sizes="(min-width: 64rem) 176px, (min-width: 40rem) 136px, 112px"
-             srcset="../Logo/logoisft177-96.png 96w,
-                     ../Logo/logoisft177-160.png 160w,
-                     ../Logo/logoisft177-192.png 192w,
-                     ../Logo/logoisft177-256.png 256w,
-                     ../Logo/logoisft177-480.png 480w">
+             srcset="../assets/Logo/logoisft177-96.png 96w,
+                     ../assets/Logo/logoisft177-160.png 160w,
+                     ../assets/Logo/logoisft177-192.png 192w,
+                     ../assets/Logo/logoisft177-256.png 256w,
+                     ../assets/Logo/logoisft177-480.png 480w">
         <p class="auth__institution">ISFT N° 177</p>
         <p class="auth__tagline">
             Exposición de proyectos de Prácticas Profesionalizantes.
@@ -170,6 +197,7 @@ $titulo = $pide_codigo ? 'Confirmar operación' : 'Definir contraseña';
                             maxlength="4"
                             autocomplete="one-time-code"
                             placeholder="0000"
+                            value="<?= $repoblar ? htmlspecialchars($viejo_token) : '' ?>"
                             required>
                     </div>
                 <?php endif; ?>
@@ -183,6 +211,7 @@ $titulo = $pide_codigo ? 'Confirmar operación' : 'Definir contraseña';
                         type="password"
                         id="password"
                         name="password"
+                        value="<?= $repoblar ? htmlspecialchars($viejo_password) : '' ?>"
                         autocomplete="new-password"
                         aria-describedby="reqs"
                         required>
@@ -204,6 +233,7 @@ $titulo = $pide_codigo ? 'Confirmar operación' : 'Definir contraseña';
                         type="password"
                         id="confirm_password"
                         name="confirm_password"
+                        value="<?= $repoblar ? htmlspecialchars($viejo_confirm) : '' ?>"
                         autocomplete="new-password"
                         data-match="password"
                         data-match-label="la contraseña"
@@ -236,11 +266,11 @@ $titulo = $pide_codigo ? 'Confirmar operación' : 'Definir contraseña';
 
 </div>
 
-<script type="module" src="../js/validate.js"></script>
-<script type="module" src="../js/toggle-password.js"></script>
+<script type="module" src="../assets/js/validate.js"></script>
+<script type="module" src="../assets/js/toggle-password.js"></script>
 <?php if ($redirigir): ?>
 <script>
-    setTimeout(function () { window.location.href = '../login/login.php'; }, 2500);
+    setTimeout(function () { window.location.href = 'login.php'; }, 2500);
 </script>
 <?php endif; ?>
 
@@ -252,7 +282,7 @@ $titulo = $pide_codigo ? 'Confirmar operación' : 'Definir contraseña';
         <svg class="icon" aria-hidden="true"><use href="#i-luna"></use></svg>
     </button>
 </div>
-<script type="module" src="../js/theme.js"></script>
+<script type="module" src="../assets/js/theme.js"></script>
 
 <?php include __DIR__ . '/../includes/iconos.php'; ?>
 </body>

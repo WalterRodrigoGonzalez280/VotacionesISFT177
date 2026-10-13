@@ -7,10 +7,10 @@
     <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
          Las tipografias van en un parcial, con la precarga de los .woff2 y la
          hoja de @font-face: ver includes/fonts.php. -->
-    <?php include __DIR__ . '/includes/theme-inline.php'; ?>
-    <?php include __DIR__ . '/includes/fonts.php'; ?>
-    <link rel="stylesheet" href="css/base.css">
-    <link rel="stylesheet" href="css/closing.css">
+    <?php include __DIR__ . '/../includes/theme-inline.php'; ?>
+    <?php include __DIR__ . '/../includes/fonts.php'; ?>
+    <link rel="stylesheet" href="../assets/css/base.css">
+    <link rel="stylesheet" href="../assets/css/closing.css">
 </head>
 <body>
 <div class="shell">
@@ -19,14 +19,14 @@
         <div class="closing__card">
             <?php /* Mismo srcset que en login.php. Los breakpoints del sizes son
                       los de closing.css: 7rem base y 8.5rem desde 40rem. */ ?>
-            <img src="Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177"
+            <img src="../assets/Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177"
                  class="closing__logo"
                  sizes="(min-width: 40rem) 136px, 112px"
-                 srcset="Logo/logoisft177-96.png 96w,
-                         Logo/logoisft177-160.png 160w,
-                         Logo/logoisft177-192.png 192w,
-                         Logo/logoisft177-256.png 256w,
-                         Logo/logoisft177-480.png 480w">
+                 srcset="../assets/Logo/logoisft177-96.png 96w,
+                         ../assets/Logo/logoisft177-160.png 160w,
+                         ../assets/Logo/logoisft177-192.png 192w,
+                         ../assets/Logo/logoisft177-256.png 256w,
+                         ../assets/Logo/logoisft177-480.png 480w">
 
             <h1 class="closing__title">¡Hasta pronto!</h1>
 
@@ -34,7 +34,7 @@
 
             <p class="closing__note">Tu sesión se cerró correctamente.</p>
 
-            <a class="btn btn--primary" href="login/login.php">Iniciar sesión</a>
+            <a class="btn btn--primary" href="../auth/login.php">Iniciar sesión</a>
 
             <p class="closing__auto">
                 Te llevamos al inicio de sesión en unos segundos.
@@ -43,10 +43,10 @@
 
     </main>
 
-    <?php include __DIR__ . '/includes/site-footer.php'; ?>
+    <?php include __DIR__ . '/../includes/site-footer.php'; ?>
 </div>
 
-<script type="module" src="js/auto-redirect.js"></script>
+<script type="module" src="../assets/js/auto-redirect.js"></script>
 
 <!-- Boton de tema: flotante, asi no hay que insertarlo en el markup
      diferente de cada pagina. -->
@@ -56,8 +56,8 @@
         <svg class="icon" aria-hidden="true"><use href="#i-luna"></use></svg>
     </button>
 </div>
-<script type="module" src="js/theme.js"></script>
+<script type="module" src="../assets/js/theme.js"></script>
 
-<?php include __DIR__ . '/includes/iconos.php'; ?>
+<?php include __DIR__ . '/../includes/iconos.php'; ?>
 </body>
 </html>

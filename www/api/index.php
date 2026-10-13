@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'conexion/conexion.php';
+require_once __DIR__ . '/../core/conexion.php';
 
 // Función para verificar si el usuario es administrador
 function esAdmin() {
@@ -464,6 +464,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         $usuario_id = (int)$_POST['usuario_id'];
 
+        // Protección: no permitir auto-eliminación
+        if (isset($_SESSION['usuario_id']) && $_SESSION['usuario_id'] === $usuario_id) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'No podés eliminarte a vos mismo']);
+            exit;
+        }
+
+        // Protección: no permitir eliminar a otro administrador
+        try {
+            $stmt = $pdo->prepare("SELECT rol_id FROM usuarios WHERE id = ?");
+            $stmt->execute([$usuario_id]);
+            $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$usuario) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Usuario no encontrado']);
+                exit;
+            }
+
+            if ((int)$usuario['rol_id'] === 1) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'No se puede eliminar a otro administrador']);
+                exit;
+            }
+        } catch (PDOException $e) {
+            error_log("Error verificando rol para eliminación: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Error al verificar usuario']);
+            exit;
+        }
+
         try {
             $pdo->beginTransaction();
 
@@ -480,6 +511,124 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             error_log("Error eliminando usuario: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Error al eliminar usuario']);
+        }
+        exit;
+    }
+
+    // ACCIÓN: CAMBIAR ROL USUARIO
+    if ($_POST['action'] === 'cambiar_rol_usuario') {
+        if (!esAdmin()) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Acceso denegado']);
+            exit;
+        }
+
+        $usuario_id = (int)$_POST['usuario_id'];
+        $nuevo_rol = (int)$_POST['rol_id']; // 1 = admin, 2 = usuario
+
+        if (!in_array($nuevo_rol, [1, 2])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Rol inválido']);
+            exit;
+        }
+
+        // Protección: no permitir auto-cambio de rol
+        if (isset($_SESSION['usuario_id']) && $_SESSION['usuario_id'] === $usuario_id) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'No podés cambiarte el rol a vos mismo']);
+            exit;
+        }
+
+        // Protección: no permitir cambiar rol a otro admin
+        try {
+            $stmt = $pdo->prepare("SELECT rol_id FROM usuarios WHERE id = ?");
+            $stmt->execute([$usuario_id]);
+            $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$usuario) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Usuario no encontrado']);
+                exit;
+            }
+
+            if ((int)$usuario['rol_id'] === 1) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'No se puede cambiar el rol a otro administrador']);
+                exit;
+            }
+        } catch (PDOException $e) {
+            error_log("Error verificando rol: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Error al verificar usuario']);
+            exit;
+        }
+
+        try {
+            $es_admin = $nuevo_rol === 1 ? 1 : 0;
+
+            $stmt = $pdo->prepare("UPDATE usuarios SET rol_id = ?, es_admin = ? WHERE id = ?");
+            $stmt->execute([$nuevo_rol, $es_admin, $usuario_id]);
+
+            if ($stmt->rowCount() === 0) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Usuario no encontrado']);
+                exit;
+            }
+
+            echo json_encode([
+                'success' => true,
+                'message' => $es_admin ? 'Usuario promovido a administrador' : 'Usuario cambiado a usuario normal'
+            ]);
+        } catch (PDOException $e) {
+            error_log("Error cambiando rol: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Error al cambiar rol']);
+        }
+        exit;
+    }
+
+    // ACCIÓN: CAMBIAR ESTADO USUARIO (activar/desactivar)
+    if ($_POST['action'] === 'cambiar_estado_usuario') {
+        if (!esAdmin()) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Acceso denegado']);
+            exit;
+        }
+
+        $usuario_id = (int)$_POST['usuario_id'];
+        $activo = (int)$_POST['activo']; // 1 = activo, 0 = inactivo
+
+        if (!in_array($activo, [0, 1])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Estado inválido']);
+            exit;
+        }
+
+        // Protección: no permitir auto-desactivación
+        if (isset($_SESSION['usuario_id']) && $_SESSION['usuario_id'] === $usuario_id) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'No podés cambiar tu propio estado']);
+            exit;
+        }
+
+        try {
+            $stmt = $pdo->prepare("UPDATE usuarios SET activo = ? WHERE id = ?");
+            $stmt->execute([$activo, $usuario_id]);
+
+            if ($stmt->rowCount() === 0) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Usuario no encontrado']);
+                exit;
+            }
+
+            echo json_encode([
+                'success' => true,
+                'message' => $activo ? 'Cuenta activada' : 'Cuenta desactivada'
+            ]);
+        } catch (PDOException $e) {
+            error_log("Error cambiando estado: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Error al cambiar estado']);
         }
         exit;
     }

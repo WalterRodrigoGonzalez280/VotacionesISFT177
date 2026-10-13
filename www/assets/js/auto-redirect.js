@@ -5,7 +5,7 @@
  * cortando la espera para no dejar la pagina cambiando sola.
  */
 
-const DESTINO = 'login/login.php';
+const DESTINO = '/auth/login.php';
 const ESPERA_MS = 5000;
 
 /** Reduce el movimiento no significa "no mover": acorta la espera. */

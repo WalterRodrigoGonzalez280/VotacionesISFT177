@@ -12,7 +12,8 @@
  *    como HTML, asi que un nombre con "<script>" no puede ejecutarse.
  */
 
-const ENDPOINT = 'api.php';
+const ENDPOINT = '/api/';
+const dialog = document.querySelector('[data-dialog]');
 
 /**
  * Muestra un aviso con `window.alert`, que es lo mismo que ya hacen `confirm`
@@ -103,8 +104,13 @@ function showLoading(container, label) {
 
 /* ------------------------------------------------------------------ tabs */
 
-const tabs = [...document.querySelectorAll('[data-tab]')];
-const panels = [...document.querySelectorAll('[data-panel]')];
+let tabs = [];
+let panels = [];
+
+function cacheTabs() {
+  tabs = [...document.querySelectorAll('[data-tab]')];
+  panels = [...document.querySelectorAll('[data-panel]')];
+}
 
 /**
  * Muestra una pestana. `focus` se pasa en true cuando el cambio vino de las
@@ -157,6 +163,199 @@ function onTabKeydown(event) {
 
 /* ---------------------------------------------------------------- usuarios */
 
+const USERS_PAGE_SIZE = 25;
+const USERS_POLL_MS = 12000; // 12 segundos
+
+/** Todos los usuarios crudos (antes de filtrar). */
+let allUsers = [];
+/** Estado de filtros y paginación, vivos entre renders. */
+let usersState = { search: '', rol: '', estado: '', page: 1 };
+/** Timer del polling de la pestaña Usuarios. */
+let usersPollTimer = null;
+
+/**
+ * Evita refrescar mientras el usuario está en plena acción:
+ * - con un <dialog> abierto (confirmar, prompt, agregar proyecto)
+ * - con un confirm/prompt pendiente (el handler es async)
+ */
+function isBusy() {
+  return dialog?.open === true;
+}
+
+function startUsersPolling() {
+  stopUsersPolling();
+  usersPollTimer = setInterval(() => {
+    // No refrescar si hay un diálogo abierto o si la pestaña ya no es Usuarios.
+    if (isBusy()) return;
+    const panel = document.querySelector('[data-panel="usuarios"]');
+    if (!panel || panel.hidden) { stopUsersPolling(); return; }
+    loadUsers();
+  }, USERS_POLL_MS);
+}
+
+function stopUsersPolling() {
+  if (usersPollTimer) {
+    clearInterval(usersPollTimer);
+    usersPollTimer = null;
+  }
+}
+
+/** Aplica filtros + paginación y devuelve { rows, total, pages, page }. */
+function getFilteredUsers() {
+  const q = usersState.search.trim().toLowerCase();
+  const rol = usersState.rol;
+  const estado = usersState.estado;
+
+  const filtered = allUsers.filter((u) => {
+    if (q) {
+      const hay = `${u.nombre} ${u.email}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (rol) {
+      const esAdmin = u.rol_id == 1 || u.es_admin == 1;
+      if (rol === 'admin' && !esAdmin) return false;
+      if (rol === 'usuario' && esAdmin) return false;
+    }
+    if (estado) {
+      const activo = u.activo == 1;
+      if (estado === 'activo' && !activo) return false;
+      if (estado === 'inactivo' && activo) return false;
+    }
+    return true;
+  });
+
+  const total = filtered.length;
+  const pages = Math.max(1, Math.ceil(total / USERS_PAGE_SIZE));
+  const page = Math.min(usersState.page, pages);
+  usersState.page = page;
+  const start = (page - 1) * USERS_PAGE_SIZE;
+
+  return { rows: filtered.slice(start, start + USERS_PAGE_SIZE), total, pages, page };
+}
+
+function buildUsersToolbar() {
+  const bar = el('div', 'users-toolbar');
+
+  // Buscador
+  const search = el('input', 'field__input users-toolbar__search');
+  search.type = 'search';
+  search.placeholder = 'Buscar por nombre o email…';
+  search.value = usersState.search;
+  search.setAttribute('aria-label', 'Buscar usuarios');
+  search.addEventListener('input', () => {
+    usersState.search = search.value;
+    usersState.page = 1;
+    renderUsersTable();
+  });
+
+  // Filtro rol
+  const rolSel = el('select', 'field__input users-toolbar__select');
+  rolSel.setAttribute('aria-label', 'Filtrar por rol');
+  for (const [v, t] of [['', 'Todos los roles'], ['admin', 'Admin'], ['usuario', 'Usuario']]) {
+    const opt = el('option', null, t);
+    opt.value = v;
+    rolSel.append(opt);
+  }
+  rolSel.value = usersState.rol;
+  rolSel.addEventListener('change', () => {
+    usersState.rol = rolSel.value;
+    usersState.page = 1;
+    renderUsersTable();
+  });
+
+  // Filtro estado
+  const estSel = el('select', 'field__input users-toolbar__select');
+  estSel.setAttribute('aria-label', 'Filtrar por estado');
+  for (const [v, t] of [['', 'Todos'], ['activo', 'Activo'], ['inactivo', 'Inactivo']]) {
+    const opt = el('option', null, t);
+    opt.value = v;
+    estSel.append(opt);
+  }
+  estSel.value = usersState.estado;
+  estSel.addEventListener('change', () => {
+    usersState.estado = estSel.value;
+    usersState.page = 1;
+    renderUsersTable();
+  });
+
+  bar.append(search, rolSel, estSel);
+  return bar;
+}
+
+function buildUsersPagination({ total, pages, page }) {
+  if (pages <= 1) {
+    const info = el('p', 'users-pagination__info', `${total} usuario${total === 1 ? '' : 's'}`);
+    return info;
+  }
+
+  const nav = el('nav', 'users-pagination');
+  nav.setAttribute('aria-label', 'Paginación de usuarios');
+
+  const prev = el('button', 'btn btn--secondary btn--sm', '← Anterior');
+  prev.type = 'button';
+  prev.disabled = page <= 1;
+  prev.addEventListener('click', () => {
+    usersState.page = page - 1;
+    renderUsersTable();
+  });
+
+  const next = el('button', 'btn btn--secondary btn--sm', 'Siguiente →');
+  next.type = 'button';
+  next.disabled = page >= pages;
+  next.addEventListener('click', () => {
+    usersState.page = page + 1;
+    renderUsersTable();
+  });
+
+  const info = el('span', 'users-pagination__info', `Página ${page} de ${pages} · ${total} usuarios`);
+
+  nav.append(prev, info, next);
+  return nav;
+}
+
+function renderUsersTable() {
+  const container = document.querySelector('[data-users-list]');
+  if (!container) return;
+
+  const { rows, total, pages, page } = getFilteredUsers();
+  const currentUserId = Number(window.CURRENT_USER_ID || 0);
+
+  const fragment = document.createDocumentFragment();
+
+  // Toolbar siempre visible
+  fragment.append(buildUsersToolbar());
+
+  if (allUsers.length === 0) {
+    fragment.append(el('p', 'panel__empty', 'No hay usuarios registrados.'));
+    render(container, fragment);
+    return;
+  }
+
+  if (rows.length === 0) {
+    fragment.append(el('p', 'panel__empty', 'Ningún usuario coincide con los filtros.'));
+    fragment.append(buildUsersPagination({ total, pages, page }));
+    render(container, fragment);
+    return;
+  }
+
+  // Tabla
+  const table = el('table', 'table');
+  table.append(buildHead(['ID', 'Usuario', 'Email', 'Rol', 'Estado', 'Votos', 'Detalle', 'Acciones']));
+  const tbody = el('tbody');
+  for (const user of rows) {
+    tbody.append(buildUserRow(user, currentUserId));
+  }
+  table.append(tbody);
+  const wrap = el('div', 'table-wrap');
+  wrap.append(table);
+  fragment.append(wrap);
+
+  // Paginación
+  fragment.append(buildUsersPagination({ total, pages, page }));
+
+  render(container, fragment);
+}
+
 async function loadUsers() {
   const container = document.querySelector('[data-users-list]');
   showLoading(container, 'Cargando usuarios…');
@@ -168,25 +367,13 @@ async function loadUsers() {
     return;
   }
 
-  if (data.usuarios.length === 0) {
-    render(container, el('p', 'panel__empty', 'No hay usuarios registrados.'));
-    return;
+  allUsers = data.usuarios || [];
+  // Si la página actual queda vacía tras borrar, volver a la 1.
+  if (usersState.page > 1 && allUsers.length <= (usersState.page - 1) * USERS_PAGE_SIZE) {
+    usersState.page = 1;
   }
 
-  // DocumentFragment: una sola insercion en el DOM en vez de una por fila.
-  const fragment = document.createDocumentFragment();
-  const table = el('table', 'table');
-  table.append(buildHead(['ID', 'Usuario', 'Email', 'Votos', 'Detalle', 'Acciones']));
-
-  const tbody = el('tbody');
-  for (const user of data.usuarios) {
-    tbody.append(buildUserRow(user));
-  }
-  table.append(tbody);
-  const wrap = el('div', 'table-wrap');
-  wrap.append(table);
-  fragment.append(wrap);
-  render(container, fragment);
+  renderUsersTable();
 }
 
 function buildHead(columns) {
@@ -201,7 +388,7 @@ function buildHead(columns) {
   return thead;
 }
 
-function buildUserRow(user) {
+function buildUserRow(user, currentUserId) {
   const tr = el('tr');
 
   tr.append(el('td', 'table__num', String(user.id)));
@@ -211,15 +398,63 @@ function buildUserRow(user) {
   tr.append(name);
 
   tr.append(el('td', 'table__email', user.email));
+
+  // Rol
+  const esAdmin = user.rol_id == 1 || user.es_admin == 1;
+  const rolBadge = el('span', `badge ${esAdmin ? 'badge--warning' : 'badge--success'}`);
+  rolBadge.textContent = esAdmin ? 'Admin' : 'Usuario';
+  const rolCell = el('td', 'table__rol');
+  rolCell.append(rolBadge);
+  tr.append(rolCell);
+
+  // Estado
+  const estaActivo = user.activo == 1;
+  const estadoBadge = el('span', `badge ${estaActivo ? 'badge--success' : 'badge--danger'}`);
+  estadoBadge.textContent = estaActivo ? 'Activo' : 'Inactivo';
+  const estadoCell = el('td', 'table__estado');
+  estadoCell.append(estadoBadge);
+  tr.append(estadoCell);
+
   tr.append(el('td', 'table__num', String(user.total_votos ?? 0)));
   tr.append(el('td', 'table__detail', user.votos_detalle || 'Sin votos'));
 
   // Las acciones viajan como data-attributes; el listener esta delegado.
   const actions = el('td', 'table__actions');
-  actions.append(
-    iconButton('refresh', `resetear-votos:${user.id}`, `Resetear los votos de ${user.nombre}`),
-    iconButton('borrar', `eliminar-usuario:${user.id}`, `Eliminar a ${user.nombre}`, 'is-danger'),
-  );
+  const isSelf = currentUserId && currentUserId == user.id;
+  const isOtherAdmin = esAdmin && !isSelf;
+
+  if (!isSelf) {
+    // Botón cambiar rol (deshabilitado para otros admins)
+    const nuevoRol = esAdmin ? 2 : 1;
+    const rolLabel = esAdmin ? `Quitar admin a ${user.nombre}` : `Hacer admin a ${user.nombre}`;
+    const rolDisabled = isOtherAdmin;
+    actions.append(
+      iconButton('personas', `cambiar-rol:${user.id}:${nuevoRol}`, rolLabel, rolDisabled ? 'is-disabled' : '')
+    );
+  }
+
+  // Botón activar/desactivar (no para uno mismo, no para otros admins)
+  if (!isSelf && !isOtherAdmin) {
+    const nuevoEstado = estaActivo ? 0 : 1;
+    const estadoLabel = estaActivo ? `Desactivar a ${user.nombre}` : `Activar a ${user.nombre}`;
+    actions.append(
+      iconButton(estaActivo ? 'bloqueo' : 'llave', `cambiar-estado:${user.id}:${nuevoEstado}`, estadoLabel)
+    );
+  }
+
+  // Botón resetear votos (no para uno mismo, no para otros admins)
+  if (!isSelf && !isOtherAdmin) {
+    actions.append(
+      iconButton('refresh', `resetear-votos-usuario:${user.id}`, `Resetear los votos de ${user.nombre}`)
+    );
+  }
+
+  // Botón eliminar (no para uno mismo, no para otros admins)
+  if (!isSelf && !isOtherAdmin) {
+    actions.append(
+      iconButton('borrar', `eliminar-usuario:${user.id}`, `Eliminar a ${user.nombre}`, 'is-danger')
+    );
+  }
   tr.append(actions);
 
   return tr;
@@ -461,8 +696,6 @@ async function saveConfig() {
 
 /* ---------------------------------------------------------------- acciones */
 
-const dialog = document.querySelector('[data-dialog]');
-
 /** Delegacion: un listener para todas las acciones declarativas. */
 async function onActionClick(event) {
   const trigger = event.target.closest('[data-action], [data-row-action]');
@@ -489,7 +722,9 @@ async function onActionClick(event) {
 }
 
 async function handleRowAction(token) {
-  const [action, id] = token.split(':');
+  const parts = token.split(':');
+  const action = parts[0];
+  const id = parts[1];
 
   switch (action) {
     case 'resetear-votos-usuario': {
@@ -502,6 +737,24 @@ async function handleRowAction(token) {
     case 'eliminar-usuario': {
       if (!window.confirm('¿Eliminar este usuario y todos sus votos?')) return;
       const { ok, data } = await api('eliminar_usuario', { usuario_id: id });
+      notify(data.message || data.error, ok ? 'success' : 'error');
+      if (ok) loadUsers();
+      break;
+    }
+    case 'cambiar-rol': {
+      const nuevoRol = parts[2];
+      const rolTexto = nuevoRol == 1 ? 'administrador' : 'usuario normal';
+      if (!window.confirm(`¿Cambiar el rol de este usuario a ${rolTexto}?`)) return;
+      const { ok, data } = await api('cambiar_rol_usuario', { usuario_id: id, rol_id: nuevoRol });
+      notify(data.message || data.error, ok ? 'success' : 'error');
+      if (ok) loadUsers();
+      break;
+    }
+    case 'cambiar-estado': {
+      const nuevoEstado = parts[2];
+      const estadoTexto = nuevoEstado == 1 ? 'activar' : 'desactivar';
+      if (!window.confirm(`¿${estadoTexto.charAt(0).toUpperCase() + estadoTexto.slice(1)} la cuenta de este usuario?`)) return;
+      const { ok, data } = await api('cambiar_estado_usuario', { usuario_id: id, activo: nuevoEstado });
       notify(data.message || data.error, ok ? 'success' : 'error');
       if (ok) loadUsers();
       break;
@@ -567,24 +820,40 @@ async function resetAll() {
 /* ------------------------------------------------------------------ arranque */
 
 function loadPanel(name) {
-  if (name === 'usuarios') loadUsers();
-  else if (name === 'subgrupos') loadGroups();
-  else if (name === 'ganadores') loadWinners();
-  else if (name === 'configuracion') loadConfig();
+  // Polling solo en la pestaña Usuarios; en las demás se detiene.
+  if (name === 'usuarios') {
+    loadUsers();
+    startUsersPolling();
+  } else {
+    stopUsersPolling();
+    if (name === 'subgrupos') loadGroups();
+    else if (name === 'ganadores') loadWinners();
+    else if (name === 'configuracion') loadConfig();
+  }
 }
 
-document.addEventListener('click', (event) => {
-  onTabClick(event);
-  onActionClick(event);
-});
+function init() {
+  cacheTabs();
 
-document.addEventListener('keydown', onTabKeydown);
+  document.addEventListener('click', (event) => {
+    onTabClick(event);
+    onActionClick(event);
+  });
 
-// El ?tab= de la URL decide que se muestra al entrar.
-const inicial = tabs.find((t) => t.getAttribute('aria-selected') === 'true')?.dataset.tab
-  ?? tabs[0]?.dataset.tab;
+  document.addEventListener('keydown', onTabKeydown);
 
-if (inicial) {
-  selectTab(inicial);
-  loadPanel(inicial);
+  // El ?tab= de la URL decide que se muestra al entrar.
+  const inicial = tabs.find((t) => t.getAttribute('aria-selected') === 'true')?.dataset.tab
+    ?? tabs[0]?.dataset.tab;
+
+  if (inicial) {
+    selectTab(inicial);
+    loadPanel(inicial);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
 }

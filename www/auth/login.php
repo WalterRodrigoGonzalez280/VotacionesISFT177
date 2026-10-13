@@ -1,7 +1,7 @@
 <?php
 session_start();
-require_once __DIR__ . '/../conexion/conexion.php';
-require_once __DIR__ . '/funciones_login.php';
+require_once __DIR__ . '/../core/conexion.php';
+require_once __DIR__ . '/../core/funciones_login.php';
 
 $mensaje = '';
 $tipo_mensaje = 'error';
@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($usuario['activo'] != 1) {
                 $_SESSION['user_email'] = $email;
                 $_SESSION['user_token'] = $usuario['token'];
-                header('Location: ../registro/activar.php');
+                header('Location: activar.php');
                 exit;
             } elseif (password_verify($password, $usuario['password'])) {
                 session_regenerate_id(true);
@@ -31,9 +31,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['usuario_email'] = $usuario['email'];
                 $_SESSION['usuario_nombre'] = $usuario['nombre'];
                 $_SESSION['logueado'] = true;
-                $_SESSION['es_admin'] = ((int)$usuario['rol_id'] === 1);
+                // es_admin se deriva de rol_id en la BD (fuente de verdad).
+                // Bug 4: login.php decidía por rol_id, api.php leía es_admin.
+                // Ahora ambos usan rol_id === 1. La columna es_admin queda decorativa.
+                $es_admin = ((int)$usuario['rol_id'] === 1);
+                $_SESSION['es_admin'] = $es_admin;
 
-                header('Location: ../votacion.php');
+                // Sincronizar en BD si estaba desincronizado (migración 2026-09-30)
+                if ((int)$usuario['es_admin'] !== ($es_admin ? 1 : 0)) {
+                    try {
+                        $stmt = $pdo->prepare('UPDATE usuarios SET es_admin = ? WHERE id = ?');
+                        $stmt->execute([$es_admin ? 1 : 0, $usuario['id']]);
+                    } catch (PDOException $e) {
+                        error_log('Login: sincronizar es_admin: ' . $e->getMessage());
+                    }
+                }
+
+                header('Location: ../public/votacion.php');
                 exit;
             } else {
                 $mensaje = 'Correo o contraseña incorrectos.';
@@ -58,8 +72,8 @@ $titulo = 'Iniciar sesión';
          hoja de @font-face: ver includes/fonts.php. -->
     <?php include __DIR__ . '/../includes/theme-inline.php'; ?>
     <?php include __DIR__ . '/../includes/fonts.php'; ?>
-    <link rel="stylesheet" href="../css/base.css">
-    <link rel="stylesheet" href="../css/auth.css">
+    <link rel="stylesheet" href="../assets/css/base.css">
+    <link rel="stylesheet" href="../assets/css/auth.css">
 </head>
 <body>
 <div class="auth">
@@ -75,14 +89,14 @@ $titulo = 'Iniciar sesión';
                   webp en TODOS los tamanos (son PNG de paleta de 8 bits, no
                   fotos), y el <source> webp ganaba siempre, dejando el srcset
                   del <img> sin efecto. */ ?>
-        <img src="../Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177"
+        <img src="../assets/Logo/logoisft177-480.png" width="480" height="480" alt="Logo del ISFT 177"
              class="auth__logo"
              sizes="(min-width: 64rem) 176px, (min-width: 40rem) 136px, 112px"
-             srcset="../Logo/logoisft177-96.png 96w,
-                     ../Logo/logoisft177-160.png 160w,
-                     ../Logo/logoisft177-192.png 192w,
-                     ../Logo/logoisft177-256.png 256w,
-                     ../Logo/logoisft177-480.png 480w">
+             srcset="../assets/Logo/logoisft177-96.png 96w,
+                     ../assets/Logo/logoisft177-160.png 160w,
+                     ../assets/Logo/logoisft177-192.png 192w,
+                     ../assets/Logo/logoisft177-256.png 256w,
+                     ../assets/Logo/logoisft177-480.png 480w">
         <p class="auth__institution">ISFT N° 177</p>
         <p class="auth__tagline">
             Exposición de proyectos de Prácticas Profesionalizantes.
@@ -141,7 +155,7 @@ $titulo = 'Iniciar sesión';
                 <a class="link" href="recuperar.php">¿Olvidaste tu contraseña?</a>
             </p>
             <p class="auth__meta">
-                ¿No tenés cuenta? <a class="link" href="../registro/registro.php">Registrate acá</a>
+                ¿No tenés cuenta? <a class="link" href="registro.php">Registrate acá</a>
             </p>
         </div>
     </main>
@@ -150,8 +164,8 @@ $titulo = 'Iniciar sesión';
 
 </div>
 
-<script type="module" src="../js/validate.js"></script>
-<script type="module" src="../js/toggle-password.js"></script>
+<script type="module" src="../assets/js/validate.js"></script>
+<script type="module" src="../assets/js/toggle-password.js"></script>
 
 <!-- Boton de tema: flotante, asi no hay que insertarlo en el markup
      diferente de cada pagina. -->
@@ -161,7 +175,7 @@ $titulo = 'Iniciar sesión';
         <svg class="icon" aria-hidden="true"><use href="#i-luna"></use></svg>
     </button>
 </div>
-<script type="module" src="../js/theme.js"></script>
+<script type="module" src="../assets/js/theme.js"></script>
 
 <?php include __DIR__ . '/../includes/iconos.php'; ?>
 </body>

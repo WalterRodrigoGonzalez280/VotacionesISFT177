@@ -1,11 +1,13 @@
 <?php
 session_start();
-require_once 'conexion/conexion.php';
+require_once __DIR__ . '/../core/conexion.php';
 
 if (empty($_SESSION['es_admin']) || $_SESSION['es_admin'] !== true) {
-    header('Location: votacion.php');
+    header('Location: ../public/votacion.php');
     exit;
 }
+
+$currentUserId = (int)($_SESSION['usuario_id'] ?? 0);
 
 // Las pestañas validas, para no dejar que ?tab= invente una.
 $tabs = [
@@ -25,16 +27,16 @@ $tab_actual = isset($_GET['tab']) && isset($tabs[$_GET['tab']]) ? $_GET['tab'] :
     <!-- Titulares en Cinzel (capitular romana), cuerpo en Lato.
          Las tipografias van en un parcial, con la precarga de los .woff2 y la
          hoja de @font-face: ver includes/fonts.php. -->
-    <?php include __DIR__ . '/includes/theme-inline.php'; ?>
-    <?php include __DIR__ . '/includes/fonts.php'; ?>
-    <link rel="stylesheet" href="css/base.css">
-    <link rel="stylesheet" href="css/admin.css">
+    <?php include __DIR__ . '/../includes/theme-inline.php'; ?>
+    <?php include __DIR__ . '/../includes/fonts.php'; ?>
+    <link rel="stylesheet" href="../assets/css/base.css">
+    <link rel="stylesheet" href="../assets/css/admin.css">
 </head>
 <body>
 <div class="shell">
     <a class="skip-link" href="#contenido">Ir al contenido</a>
 
-    <?php $nav_actual = 'admin'; include __DIR__ . '/includes/site-header.php'; ?>
+    <?php $nav_actual = 'admin'; include __DIR__ . '/../includes/site-header.php'; ?>
 
     <main class="shell__main" id="contenido">
         <div class="wrap wrap--wide">
@@ -152,7 +154,7 @@ $tab_actual = isset($_GET['tab']) && isset($tabs[$_GET['tab']]) ? $_GET['tab'] :
         </div>
     </main>
 
-    <?php include __DIR__ . '/includes/site-footer.php'; ?>
+    <?php include __DIR__ . '/../includes/site-footer.php'; ?>
 </div>
 
 <!-- <dialog> nativo: modal, foco atrapado y Escape sin una linea de JS -->
@@ -192,8 +194,11 @@ $tab_actual = isset($_GET['tab']) && isset($tabs[$_GET['tab']]) ? $_GET['tab'] :
     </form>
 </dialog>
 
-<script type="module" src="js/admin.js"></script>
+<script>
+  window.CURRENT_USER_ID = <?= json_encode($currentUserId) ?>;
+</script>
+<script type="module" src="../assets/js/admin.js"></script>
 
-<?php include __DIR__ . '/includes/iconos.php'; ?>
+<?php include __DIR__ . '/../includes/iconos.php'; ?>
 </body>
 </html>

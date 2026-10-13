@@ -2,7 +2,8 @@
  * Validacion de formularios en el cliente.
  *
  * Por que en el cliente y no solo en PHP: el servidor ya valida (registro
- * exige 3-20 letras, activar exige mayuscula y numero, etc.), pero si el
+ * exige un nombre de usuario con letras, numeros y signos permitidos, activar
+ * exige mayuscula y numero, etc.), pero si el
  * error solo aparece despues del POST con un alert(), la persona pierde lo que
  * habia escrito. Aca se valida antes de enviar y el mensaje va pegado al
  * campo, sin perder nada.
@@ -81,10 +82,16 @@ const RULES = {
     test: (value) => /^(?=.*[A-Z])(?=.*\d).{6,}$/.test(value),
     message: () => 'Mínimo 6 caracteres, con al menos una mayúscula y un número.',
   },
-  /** solo letras, sin espacios ni numeros. */
-  letters: {
-    test: (value) => /^[a-zA-Z]{3,20}$/.test(value),
-    message: () => 'Entre 3 y 20 letras, sin números ni espacios.',
+  /**
+   * Nombre de usuario: letras de cualquier alfabeto, numeros, espacio y los
+   * signos . ' _ -. Se bloquea todo lo demas (control, <>&", /, ;, %, #, =,
+   * emoji, etc.). El largo maximo lo fija el atributo maxlength del input
+   * (50, coherente con la columna `nombre varchar(50)`) y el servidor.
+   * Debe coincidir con la regex del servidor (registro_validar.php).
+   */
+  nombreSeguro: {
+    test: (value) => /^[\p{L}\p{N} .'_-]+$/u.test(value),
+    message: () => 'El nombre solo puede tener letras, números, espacios y los signos . - _ \'.',
   },
   /** 4 digitos exactos. */
   digits4: {
@@ -104,7 +111,7 @@ const FORMS = new Map([
   }],
   ['registro', {
     fields: {
-      usuario: ['required', 'letters'],
+      usuario: ['required', 'nombreSeguro'],
       correo: ['required', 'email'],
     },
   }],

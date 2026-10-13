@@ -116,24 +116,36 @@
     --c-gold:      #d4a73e;   /* botones, bordes, iconos sobre oscuro */
     --c-gold-text: #8a6622;   /* dorado como TEXTO: 4,93:1 sobre el fondo */
     --c-gold-dark: #a67c2e;   /* hover de botones */
-    --c-gold-soft: #86621c;   /* en claro tiene que ser legible: 4,79:1 en la
-                                     superficie hundida, que es la mas exigente */
-    --c-gold-hover: #7c5b1c;  /* hover de enlace: 5,86:1 */
+    --c-gold-soft: #6b4a16;   /* hover/enlaces/badge-warning: 5,12:1 sobre surface-2 (AA 14px+) */
+    --c-gold-hover: #6b4a16;  /* hover de enlace: 5,12:1 */
 
+    /* Azul institucional (del escudo) */
+    --c-navy:      #1b2a4a;   /* texto/borde institucional */
+    --c-navy-tint: rgb(27 42 74 / 0.10);  /* fondo sutil institucional */
     /* Superficies */
     --c-bg:        #faf8f0;   /* hueso */
     --c-surface:   #ffffff;
     --c-surface-2: #f2eee1;   /* hundido: inputs, cabeceras */
     --c-surface-3: #e9e3d0;   /* hover sobre superficie */
 
-    /* Texto */
-    --c-white:     #1a1a1a;   /* sobre claro, "blanco" es el texto fuerte */
-    --c-muted:     #5c574d;   /* secundario: 6,75:1 sobre el fondo */
+    /* Texto — escala unificada */
+    --c-text:           #1a1a1a;   /* principal: 16.3:1 sobre fondo */
+    --c-text-muted:     #5c574d;   /* secundario: 6.75:1 */
+    --c-text-placeholder: #6f6a5e; /* placeholder: 4.5:1 */
+    --c-text-brand:     #8a6622;   /* dorado titulares/marca: 4.93:1 */
+    --c-text-accent:    #6b4a16;   /* dorado hover/enlaces: 5.12:1 (AA 14px+) */
+    --c-text-on-primary: #0d0d0d;  /* sobre botón dorado: 8.7:1 */
 
     /* Bordes */
     --c-line:        rgb(138 102 34 / 0.20);
     --c-line-strong: rgb(138 102 34 / 0.42);
     --c-line-gold:   #a67c2e;
+
+    /* Borde de controles (inputs/selects). WCAG 1.4.11 pide 3:1 en el limite
+       que identifica al componente: --c-line queda en 1,31:1 sobre la
+       superficie, asi que el campo era practicamente invisible sin el
+       relleno. Decorativos (tablas, separadores, cards) siguen en --c-line. */
+    --c-line-control: #9b7d41;
 
     /* Estados, sobre claro */
     --c-ok:        #2f7d4f;
@@ -160,18 +172,16 @@
     --c-gold-wash:   rgb(212 167 62 / 0.14);   /* lavado dorado suave */
     --c-gold-tint:   rgb(212 167 62 / 0.10);   /* fondo de hover/badge */
     --c-backdrop:    rgb(26 26 26 / 0.45);
-    --c-placeholder: #6f6a5e;
-    --c-on-gold:     #0d0d0d;   /* texto sobre dorado: 8,70:1 */
 
-    /* Texto sobre la superficie de honor (crema) */
-    --c-cream:      #f5f0b5;
-    --c-on-cream:   #1a1a1a;
-    --c-on-cream-muted: #5c5233;
+    /* Superficie crema (honor) — usa la escala unificada */
+    --c-cream:           #f5f0b5;
+    --c-text-on-cream:   var(--c-text);
+    --c-text-muted-on-cream: var(--c-text-muted);
 
     /* Sombras: en claro la sombra si se ve, en oscuro casi no */
-    --sh-1: 0 1px 2px rgb(60 50 20 / 0.08);
-    --sh-2: 0 1px 3px rgb(60 50 20 / 0.09), 0 8px 24px rgb(60 50 20 / 0.06);
-    --sh-3: 0 4px 12px rgb(60 50 20 / 0.12), 0 16px 40px rgb(60 50 20 / 0.09);
+    --sh-1: 0 1px 2px rgb(60 50 20 / 0.12);
+    --sh-2: 0 1px 3px rgb(60 50 20 / 0.14), 0 8px 24px rgb(60 50 20 / 0.10);
+    --sh-3: 0 4px 12px rgb(60 50 20 / 0.16), 0 16px 40px rgb(60 50 20 / 0.12);
 }
 
 /* ==========================================================================
@@ -187,47 +197,57 @@
     --c-gold-soft: #e8c97a;
     --c-gold-hover: #e8c97a;  /* en oscuro el hover aclara */
 
-    --c-bg:        #0d0d0d;
-    --c-surface:   #2b2b2b;
-    --c-surface-2: #1a1a1a;
-    --c-surface-3: #3a3a3a;
+    /* Azul institucional (del escudo) */
+    --c-navy:      #6aa9c9;   /* en oscuro usa el tono info para contraste */
+    --c-navy-tint: rgb(106 169 201 / 0.15);  /* fondo sutil institucional */
 
-    --c-white:     #ffffff;
-    --c-muted:     #d9d9d9;   /* 17,36:1 sobre el fondo */
+    --c-bg:        #0a0a0a;       /* negro suave, menos duro que #000 */
+    --c-surface:   #161616;       /* tarjetas: un peldaño arriba del bg */
+    --c-surface-2: #1e1e1e;       /* inputs/cabeceras: visible sobre surface */
+    --c-surface-3: #2a2a2a;       /* hover: sutil elevación */
 
-    --c-line:        rgb(212 167 62 / 0.22);
-    --c-line-strong: rgb(212 167 62 / 0.45);
-    --c-line-gold:   var(--c-gold-dark);
+    /* Texto — escala unificada */
+    --c-text:           #ffffff;      /* principal: 21:1 */
+    --c-text-muted:     #b3b3b3;      /* secundario: 8.5:1 — menos "brillante" */
+    --c-text-placeholder: #7a7a7a;    /* placeholder: 4.8:1 */
+    --c-text-brand:     #d4a73e;      /* dorado titulares/marca: 8.7:1 */
+    --c-text-accent:    #e8c97a;      /* dorado hover/enlaces: 10.2:1 */
+    --c-text-on-primary: #0d0d0d;     /* sobre botón dorado: 21:1 */
+
+    /* Bordes: neutros con toque dorado muy sutil */
+    --c-line:        rgb(255 255 255 / 0.08);      /* bordes decorativos */
+    --c-line-strong: rgb(255 255 255 / 0.15);      /* bordes de foco/activo */
+    --c-line-gold:   var(--c-gold-dark);            /* acentos de marca */
+    --c-line-control: #4a4a4a;   /* 3.2:1 sobre surface-2 — inputs visibles */
 
     --c-ok:        #4caf7d;
-    --c-ok-bg:     #14301f;
-    --c-ok-line:   #1f5236;
+    --c-ok-bg:     #0d1f14;
+    --c-ok-line:   #1a3a26;
     --c-ok-ink:    #7fd6a5;
 
     --c-danger:      #e05a4a;
-    --c-danger-bg:   #2e1512;
-    --c-danger-line: #5c241d;
+    --c-danger-bg:   #1f0d0c;
+    --c-danger-line: #3a1a18;
     --c-danger-ink:  #f0938a;
 
     --c-info:      #6aa9c9;
-    --c-info-bg:   #12242e;
-    --c-info-line: #1f4152;
+    --c-info-bg:   #0c1a24;
+    --c-info-line:   #162d3e;
     --c-info-ink:  #9fd0e6;
 
-    --c-warn-bg:   #2c2410;
-    --c-warn-line: #5c4a1a;
+    --c-warn-bg:   #1a140a;
+    --c-warn-line:   #332814;
     --c-warn-ink:  #e8c97a;
 
-    --c-halo:        rgb(212 167 62 / 0.18);
-    --c-gold-wash:   rgb(212 167 62 / 0.16);
-    --c-gold-tint:   rgb(212 167 62 / 0.10);
-    --c-backdrop:    rgb(0 0 0 / 0.70);
-    --c-placeholder: #9a9a9a;
-    --c-on-gold:     #0d0d0d;
+    --c-halo:        rgb(212 167 62 / 0.12);
+    --c-gold-wash:   rgb(212 167 62 / 0.10);
+    --c-gold-tint:   rgb(212 167 62 / 0.06);
+    --c-backdrop:    rgb(0 0 0 / 0.75);
 
-    --c-cream:      #f5f0b5;
-    --c-on-cream:   #1a1a1a;
-    --c-on-cream-muted: #6b5a20;
+    /* Superficie crema (honor) — usa la escala unificada */
+    --c-cream:           #f5f0b5;
+    --c-text-on-cream:   #1a1a1a;
+    --c-text-muted-on-cream: #6b5a20;
 
     --sh-1: 0 1px 2px rgb(0 0 0 / 0.40);
     --sh-2: 0 2px 6px rgb(0 0 0 / 0.45);
@@ -245,47 +265,57 @@
         --c-gold-soft: #e8c97a;
         --c-gold-hover: #e8c97a;
 
-        --c-bg:        #0d0d0d;
-        --c-surface:   #2b2b2b;
-        --c-surface-2: #1a1a1a;
-        --c-surface-3: #3a3a3a;
+        /* Azul institucional (del escudo) */
+        --c-navy:      #6aa9c9;   /* en oscuro usa el tono info para contraste */
+        --c-navy-tint: rgb(106 169 201 / 0.15);  /* fondo sutil institucional */
 
-        --c-white:     #ffffff;
-        --c-muted:     #d9d9d9;
+        --c-bg:        #0a0a0a;
+        --c-surface:   #161616;
+        --c-surface-2: #1e1e1e;
+        --c-surface-3: #2a2a2a;
 
-        --c-line:        rgb(212 167 62 / 0.22);
-        --c-line-strong: rgb(212 167 62 / 0.45);
+        /* Texto — escala unificada */
+        --c-text:           #ffffff;
+        --c-text-muted:     #b3b3b3;
+        --c-text-placeholder: #7a7a7a;
+        --c-text-brand:     #d4a73e;
+        --c-text-accent:    #e8c97a;
+        --c-text-on-primary: #0d0d0d;
+
+        /* Bordes: neutros con toque dorado muy sutil */
+        --c-line:        rgb(255 255 255 / 0.08);
+        --c-line-strong: rgb(255 255 255 / 0.15);
         --c-line-gold:   #a67c2e;
+        --c-line-control: #4a4a4a;
 
         --c-ok:        #4caf7d;
-        --c-ok-bg:     #14301f;
-        --c-ok-line:   #1f5236;
+        --c-ok-bg:     #0d1f14;
+        --c-ok-line:   #1a3a26;
         --c-ok-ink:    #7fd6a5;
 
         --c-danger:      #e05a4a;
-        --c-danger-bg:   #2e1512;
-        --c-danger-line: #5c241d;
+        --c-danger-bg:   #1f0d0c;
+        --c-danger-line: #3a1a18;
         --c-danger-ink:  #f0938a;
 
         --c-info:      #6aa9c9;
-        --c-info-bg:   #12242e;
-        --c-info-line: #1f4152;
+        --c-info-bg:   #0c1a24;
+        --c-info-line:   #162d3e;
         --c-info-ink:  #9fd0e6;
 
-        --c-warn-bg:   #2c2410;
-        --c-warn-line: #5c4a1a;
+        --c-warn-bg:   #1a140a;
+        --c-warn-line:   #332814;
         --c-warn-ink:  #e8c97a;
 
-        --c-halo:        rgb(212 167 62 / 0.18);
-        --c-gold-wash:   rgb(212 167 62 / 0.16);
-        --c-gold-tint:   rgb(212 167 62 / 0.10);
-        --c-backdrop:    rgb(0 0 0 / 0.70);
-        --c-placeholder: #9a9a9a;
-        --c-on-gold:     #0d0d0d;
+        --c-halo:        rgb(212 167 62 / 0.12);
+        --c-gold-wash:   rgb(212 167 62 / 0.10);
+        --c-gold-tint:   rgb(212 167 62 / 0.06);
+        --c-backdrop:    rgb(0 0 0 / 0.75);
 
-        --c-cream:      #f5f0b5;
-        --c-on-cream:   #1a1a1a;
-        --c-on-cream-muted: #6b5a20;
+        /* Superficie crema (honor) — usa la escala unificada */
+        --c-cream:           #f5f0b5;
+        --c-text-on-cream:   #1a1a1a;
+        --c-text-muted-on-cream: #6b5a20;
 
         --sh-1: 0 1px 2px rgb(0 0 0 / 0.40);
         --sh-2: 0 2px 6px rgb(0 0 0 / 0.45);
@@ -325,7 +355,7 @@ html {
 body {
     min-block-size: 100dvh;
     background: var(--c-bg);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     font-family: var(--font-sans);
     font-size: var(--fs-base);
     font-weight: 400;
@@ -338,8 +368,8 @@ h1,
 h2 {
     font-family: var(--font-display);
     font-weight: 600;
-    /* --c-gold-text cambia segun el tema: puro en oscuro, oscurecido en claro */
-    color: var(--c-gold-text);
+    /* --c-text-brand cambia segun el tema: puro en oscuro, oscurecido en claro */
+    color: var(--c-text-brand);
     line-height: var(--lh-tight);
     letter-spacing: 0.01em;
 }
@@ -350,7 +380,7 @@ h5,
 h6 {
     font-family: var(--font-sans);
     font-weight: 700;
-    color: var(--c-gold-text);
+    color: var(--c-text-brand);
     line-height: var(--lh-tight);
 }
 
@@ -359,10 +389,12 @@ h2 { font-size: var(--fs-xl); }
 h3 { font-size: var(--fs-lg); }
 
 strong,
-b { color: var(--c-white); font-weight: 700; }
+b { color: var(--c-text); font-weight: 700; }
 
-a { color: var(--c-gold-text); }
-a:hover { color: var(--c-gold-hover); }
+a { color: var(--c-text-brand);
+     text-decoration: none;
+ }
+a:hover { color: var(--c-text-accent); }
 
 img,
 picture,
@@ -385,7 +417,7 @@ ol[class] { list-style: none; padding: 0; }
    ========================================================================== */
 
 :focus-visible {
-    outline: 3px solid var(--c-gold-text);
+    outline: 3px solid var(--c-text-brand);
     outline-offset: 2px;
     border-radius: var(--r-sm);
 }
@@ -406,8 +438,8 @@ ol[class] { list-style: none; padding: 0; }
         --c-line: rgb(212 167 62 / 0.55);
         --c-line-strong: rgb(212 167 62 / 0.8);
     }
-    :root[data-theme='dark'] { --c-muted: #f2f2f2; }
-    :root[data-theme='light'] { --c-muted: #3a3730; }
+    :root[data-theme='dark'] { --c-text-muted: #f2f2f2; }
+    :root[data-theme='light'] { --c-text-muted: #3a3730; }
 }
 
 .visually-hidden {
@@ -429,7 +461,7 @@ ol[class] { list-style: none; padding: 0; }
     z-index: 100;
     padding: var(--s-2) var(--s-4);
     background: var(--c-gold);
-    color: var(--c-on-gold);
+    color: var(--c-text-on-primary);
     border-radius: var(--r-sm);
     text-decoration: none;
     font-weight: 700;
@@ -439,7 +471,7 @@ ol[class] { list-style: none; padding: 0; }
 
 .skip-link:focus-visible {
     transform: translateY(0);
-    outline-color: var(--c-gold-text);
+    outline-color: var(--c-text-brand);
 }
 
 /* ==========================================================================
@@ -482,7 +514,7 @@ ol[class] { list-style: none; padding: 0; }
     padding-block: var(--s-5) var(--s-6);
     border-block-start: 1px solid var(--c-line);
     text-align: center;
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     font-size: var(--fs-xs);
 }
 
@@ -508,34 +540,38 @@ ol[class] { list-style: none; padding: 0; }
 .btn:hover { transform: translateY(-1px); }
 .btn:active { transform: translateY(0); }
 
-/* CTA: dorado con texto negro, 8,70:1 */
+/* CTA: dorado suave en reposo, dorado lleno en hover */
 .btn--primary {
-    background: var(--c-gold);
-    color: var(--c-on-gold);
-    border-color: var(--c-gold-text);
+    background: var(--c-gold-tint);   /* 10% dorado — visible pero no pesado */
+    color: var(--c-text-brand);       /* texto dorado */
+    border-color: var(--c-line-gold); /* borde dorado */
     box-shadow: var(--sh-1);
 }
-.btn--primary:hover { background: var(--c-gold-dark); border-color: var(--c-gold-dark); }
+.btn--primary:hover {
+    background: var(--c-gold);        /* dorado lleno */
+    border-color: var(--c-gold-dark);
+    color: #fff;                      /* texto blanco en hover */
+}
 
 .btn--secondary {
     background: transparent;
-    color: var(--c-gold-text);
+    color: var(--c-text-brand);
     border-color: var(--c-line-strong);
 }
 .btn--secondary:hover {
     background: var(--c-gold-tint);
-    border-color: var(--c-gold-text);
-    color: var(--c-gold-soft);
+    border-color: var(--c-text-brand);
+    color: var(--c-text-accent);
 }
 
 .btn--ghost {
     background: transparent;
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     border-color: transparent;
     padding-inline: var(--s-3);
 }
 .btn--ghost:hover {
-    color: var(--c-gold-text);
+    color: var(--c-text-brand);
     background: var(--c-gold-tint);
 }
 
@@ -584,7 +620,7 @@ ol[class] { list-style: none; padding: 0; }
 .field__label {
     font-size: var(--fs-sm);
     font-weight: 700;
-    color: var(--c-white);
+    color: var(--c-text);
 }
 
 .field__hint {
@@ -592,25 +628,35 @@ ol[class] { list-style: none; padding: 0; }
     align-items: flex-start;
     gap: var(--s-2);
     font-size: var(--fs-xs);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
 }
 
+/* El line-height explicito es la misma correccion que ya aplicaba .btn: el
+   input heredaba el --lh-body del body (1.65), pensado para parrafos. Con
+   18px x 1.65 mas 0.7em de padding a cada lado daba 57px de alto, mas que
+   un boton primario (44px) y desproporcionado para un control tan liviano.
+
+   Con 1.35 y 0.55em queda 46px: sigue por encima del piso de contacto de
+   44px del @media (pointer: coarse), y el .field__toggle de 36px sigue
+   centrado con holgura. El font-size NO baja de 18px: en iOS Safari un
+   input de menos de 16px dispara el zoom automatico al enfocar. */
 .field__input {
     inline-size: 100%;
-    padding: 0.7em 0.9em;
+    padding: 0.55em 0.9em;
+    line-height: 1.35;
     background: var(--c-surface-2);
-    color: var(--c-white);
-    border: 1px solid var(--c-line);
+    color: var(--c-text);
+    border: 1px solid var(--c-line-control);
     border-radius: var(--r-sm);
     font-size: var(--fs-base);
     transition: border-color var(--t-fast), box-shadow var(--t-fast);
 }
 
-.field__input::placeholder { color: var(--c-placeholder); }
-.field__input:hover { border-color: var(--c-line-strong); }
+.field__input::placeholder { color: var(--c-text-placeholder); }
+.field__input:hover { border-color: var(--c-text-brand); }
 
 .field__input:focus {
-    border-color: var(--c-gold-text);
+    border-color: var(--c-text-brand);
     box-shadow: 0 0 0 3px var(--c-gold-tint);
     outline: none;
 }
@@ -663,9 +709,9 @@ ol[class] { list-style: none; padding: 0; }
     background: transparent;
     border: 0;
     border-radius: var(--r-sm);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
 }
-.field__toggle:hover { background: var(--c-surface-3); color: var(--c-gold-text); }
+.field__toggle:hover { background: var(--c-surface-3); color: var(--c-text-brand); }
 
 /* ---------- Tarjetas ---------- */
 
@@ -686,7 +732,7 @@ ol[class] { list-style: none; padding: 0; }
     border-block-end: 1px solid var(--c-line-strong);
 }
 
-.card__title .icon { color: var(--c-gold-soft); }
+.card__title .icon { color: var(--c-text-accent); }
 
 .card__body > * + * { margin-block-start: var(--s-3); }
 
@@ -702,7 +748,7 @@ ol[class] { list-style: none; padding: 0; }
     background: var(--c-surface);
     font-size: var(--fs-sm);
     font-weight: 700;
-    color: var(--c-white);
+    color: var(--c-text);
 }
 
 .badge--lg { padding: 0.5em 1.3em; font-size: var(--fs-md); }
@@ -715,7 +761,7 @@ ol[class] { list-style: none; padding: 0; }
 
 .badge--open  { border-color: var(--c-ok-line);  color: var(--c-ok-ink);  background: var(--c-ok-bg); }
 
-.badge--soon  { border-color: var(--c-line-gold); color: var(--c-gold-text); }
+.badge--soon  { border-color: var(--c-line-gold); color: var(--c-text-brand); }
 
 .badge--closed { border-color: var(--c-danger-line); color: var(--c-danger-ink); background: var(--c-danger-bg); }
 
@@ -725,7 +771,7 @@ ol[class] { list-style: none; padding: 0; }
     border-radius: var(--r-sm);
     background: var(--c-gold-tint);
     border: 1px solid var(--c-line-strong);
-    color: var(--c-gold-soft);
+    color: var(--c-text-accent);
     font-size: var(--fs-xs);
     font-weight: 700;
 }
@@ -755,7 +801,7 @@ ol[class] { list-style: none; padding: 0; }
     display: flex;
     gap: var(--s-3);
     align-items: flex-start;
-    color: var(--c-muted);
+    color: var(--c-text-muted);
 }
 
 /* La frase entera es UN solo flex item: sin esto, el <strong> es su propio
@@ -775,7 +821,7 @@ ol[class] { list-style: none; padding: 0; }
     block-size: 1.75rem;
     border-radius: 50%;
     background: var(--c-gold);
-    color: var(--c-on-gold);
+    color: var(--c-text-on-primary);
     font-size: var(--fs-xs);
     font-weight: 700;
 }
@@ -788,7 +834,7 @@ ol[class] { list-style: none; padding: 0; }
     inline-size: min(100% - var(--s-5), 26rem);
     padding: 0;
     background: var(--c-surface);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     border: 1px solid var(--c-line-strong);
     border-radius: var(--r-md);
     box-shadow: var(--sh-3);
@@ -801,8 +847,8 @@ ol[class] { list-style: none; padding: 0; }
 
 .dialog__actions { display: flex; gap: var(--s-2); justify-content: flex-end; }
 
-.dialog__text { color: var(--c-muted); font-size: var(--fs-sm); }
-.dialog__text strong { color: var(--c-white); }
+.dialog__text { color: var(--c-text-muted); font-size: var(--fs-sm); }
+.dialog__text strong { color: var(--c-text); }
 
 .dialog__warn {
     display: flex;
@@ -945,7 +991,7 @@ ol[class] { list-style: none; padding: 0; }
     block-size: 2.5rem;
     padding: 0;
     background: var(--c-surface);
-    color: var(--c-gold-text);
+    color: var(--c-text-brand);
     border: 1px solid var(--c-line-strong);
     border-radius: 50%;
     box-shadow: var(--sh-2);
@@ -1045,7 +1091,7 @@ ol[class] { list-style: none; padding: 0; }
 .sitebar__title {
     font-size: var(--fs-sm);
     font-weight: 700;
-    color: var(--c-white);
+    color: var(--c-text);
     line-height: var(--lh-tight);
     white-space: nowrap;
     overflow: hidden;
@@ -1054,7 +1100,7 @@ ol[class] { list-style: none; padding: 0; }
 
 .sitebar__sub {
     font-size: var(--fs-xs);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1077,7 +1123,7 @@ ol[class] { list-style: none; padding: 0; }
     block-size: 2.5rem;
     padding: 0;
     background: var(--c-surface);
-    color: var(--c-gold-text);
+    color: var(--c-text-brand);
     border: 1px solid var(--c-line-strong);
     border-radius: 50%;
     box-shadow: var(--sh-2);
@@ -1088,7 +1134,7 @@ ol[class] { list-style: none; padding: 0; }
 .js .sitebar__burger:hover {
     background: var(--c-surface-3);
     border-color: var(--c-gold);
-    color: var(--c-gold-hover);
+    color: var(--c-text-accent);
 }
 
 /* Los dos iconos estan en el HTML y el que se ve lo elige el estado: sin JS
@@ -1139,24 +1185,24 @@ ol[class] { list-style: none; padding: 0; }
     border-radius: var(--r-sm);
     font-size: var(--fs-sm);
     font-weight: 700;
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     text-decoration: none;
     transition: color var(--t-fast), background var(--t-fast);
 }
 
 .navlist__link:hover {
-    color: var(--c-gold-text);
+    color: var(--c-text-brand);
     background: var(--c-gold-tint);
 }
 
 /* La seccion actual se marca con fondo, no solo con color: el color solo no
    alcanza para quien no distingue el dorado del gris. */
 .navlist__link.is-current {
-    color: var(--c-on-gold);
+    color: var(--c-text-on-primary);
     background: var(--c-gold);
 }
 
-.navlist__link.is-current:hover { color: var(--c-on-gold); background: var(--c-gold-dark); }
+.navlist__link.is-current:hover { color: var(--c-text-on-primary); background: var(--c-gold-dark); }
 
 /* ---------- Lado derecho ---------- */
 
@@ -1179,7 +1225,7 @@ ol[class] { list-style: none; padding: 0; }
 
 .sitebar__user {
     font-size: var(--fs-sm);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     max-inline-size: 10ch;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1216,11 +1262,11 @@ ol[class] { list-style: none; padding: 0; }
     font-family: var(--font-display);
     font-size: var(--fs-lg);
     font-weight: 600;
-    color: var(--c-gold-text);
+    color: var(--c-text-brand);
     line-height: var(--lh-tight);
 }
 
-.sitefoot__tagline { font-size: var(--fs-sm); color: var(--c-muted); }
+.sitefoot__tagline { font-size: var(--fs-sm); color: var(--c-text-muted); }
 
 /* ---------- Columnas de enlaces ---------- */
 
@@ -1230,7 +1276,7 @@ ol[class] { list-style: none; padding: 0; }
     font-family: var(--font-sans);
     font-size: var(--fs-xs);
     font-weight: 700;
-    color: var(--c-gold-text);
+    color: var(--c-text-brand);
     text-transform: uppercase;
     letter-spacing: 0.1em;
     padding-block-end: var(--s-2);
@@ -1241,14 +1287,14 @@ ol[class] { list-style: none; padding: 0; }
 
 .sitefoot__link {
     font-size: var(--fs-sm);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     text-decoration: none;
     transition: color var(--t-fast);
 }
 
-.sitefoot__link:hover { color: var(--c-gold-text); text-decoration: underline; }
+.sitefoot__link:hover { color: var(--c-text-brand); text-decoration: underline; }
 
-.sitefoot__links--static { color: var(--c-muted); font-size: var(--fs-sm); }
+.sitefoot__links--static { color: var(--c-text-muted); font-size: var(--fs-sm); }
 
 /* El margen de abajo estaba ausente: el texto legal quedaba pegado al borde
    inferior del pie, sin aire. */
@@ -1258,7 +1304,7 @@ ol[class] { list-style: none; padding: 0; }
     border-block-start: 1px solid var(--c-line);
     text-align: center;
     font-size: var(--fs-xs);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
 }
 
 /* ---------- Responsive, mobile-first ---------- */

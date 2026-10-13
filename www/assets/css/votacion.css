@@ -26,7 +26,7 @@
     border-radius: var(--r-md);
 }
 
-.waiting__lead { color: var(--c-white); font-size: var(--fs-md); }
+.waiting__lead { color: var(--c-text); font-size: var(--fs-md); }
 
 .countdown {
     display: grid;
@@ -49,10 +49,10 @@
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     line-height: 1;
-    color: var(--c-gold-text);
+    color: var(--c-text-brand);
 }
 
-.countdown__label { font-size: var(--fs-xs); color: var(--c-muted); }
+.countdown__label { font-size: var(--fs-xs); color: var(--c-text-muted); }
 
 /* ---------- Estado del usuario ---------- */
 
@@ -72,10 +72,10 @@
     font-size: var(--fs-xs);
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--c-gold-soft);
+    color: var(--c-text-accent);
 }
 
-.mystatus__name strong { color: var(--c-white); }
+.mystatus__name strong { color: var(--c-text); }
 
 .mystatus__votes {
     list-style: none;
@@ -93,10 +93,10 @@
     border: 1px solid var(--c-line);
     border-radius: var(--r-pill);
     font-size: var(--fs-xs);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
 }
 
-.mystatus__vote .icon { color: var(--c-muted); }
+.mystatus__vote .icon { color: var(--c-text-muted); }
 
 .mystatus__vote[data-voted='true'] {
     background: var(--c-ok-bg);
@@ -139,7 +139,7 @@
 
 .project:hover { border-color: var(--c-line-strong); }
 
-.project__name { font-size: var(--fs-base); color: var(--c-white); }
+.project__name { font-size: var(--fs-base); color: var(--c-text); }
 
 /* CTA de la tarjeta. En mobile ocupa todo el ancho de la tarjeta: es mas
    facil de acertar con el dedo y queda alineado con el titulo. */
@@ -150,7 +150,7 @@
 
 .project__count {
     font-size: var(--fs-sm);
-    color: var(--c-muted);
+    color: var(--c-text-muted);
     font-variant-numeric: tabular-nums;
 }
 
@@ -167,7 +167,7 @@
     opacity: 0.6;
 }
 
-.project[data-muted='true'] .project__name { color: var(--c-muted); }
+.project[data-muted='true'] .project__name { color: var(--c-text-muted); }
 
 /* ---------- Responsive ---------- */
 
