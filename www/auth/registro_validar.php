@@ -47,7 +47,7 @@ if ($errores) {
 /* ----------------------------------------------------- correo ya registrado */
 
 try {
-    $stmt = $pdo->prepare('SELECT id, activo FROM usuarios WHERE email = ? LIMIT 1');
+    $stmt = $pdo->prepare('SELECT id, activo, token_ultimo_envio FROM usuarios WHERE email = ? LIMIT 1');
     $stmt->execute([$correo]);
     $existente = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -56,6 +56,24 @@ try {
         flash_set('error', 'Ese correo ya tiene una cuenta activa. Iniciá sesión.');
         header('Location: login.php');
         exit;
+    }
+
+    /* ----------------------------------------------------- throttle reenvio */
+
+    // Cuenta existente sin activar: mismo throttle de 60 segundos que el
+    // boton "Enviar otro" de activar.php. Sin esto el formulario de registro
+    // permite mandar codigos al mismo correo sin limite.
+    if ($existente) {
+        $ultimo = $existente['token_ultimo_envio'] !== null
+            ? strtotime($existente['token_ultimo_envio'])
+            : false;
+
+        if ($ultimo !== false && (time() - $ultimo) < 60) {
+            flash_remember(['usuario' => $usuario, 'correo' => $correo]);
+            flash_set('error', 'Esperá un minuto antes de pedir otro código.');
+            header('Location: registro.php');
+            exit;
+        }
     }
 
     /* ------------------------------------------------ generacion y envio */

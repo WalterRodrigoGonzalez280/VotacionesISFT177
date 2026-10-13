@@ -31,3 +31,10 @@ votacion_db.sql
 *.dump.sql
 *-dump.sql
 *-dump-*.sql
+
+# Datos migrados de MySQL. datos.sql trae los hashes de password de los
+# usuarios reales: NO va al repo. schema.sql SI va (esta saneado a proposito,
+# MAIL_PASSWORD va en NULL) porque es el que permite levantar la base desde un
+# clone limpio via el mount de docker-compose.yml.
+database/datos.sql
+database/schema-mysql.sql
